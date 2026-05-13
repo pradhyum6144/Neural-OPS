@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, Trash2 } from "lucide-react";
 import type { LogEntry, LogLevel } from "@/hooks/use-dashboard";
 
 const LEVEL_STYLE: Record<LogLevel, string> = {
@@ -20,7 +20,7 @@ const LEVEL_LABEL: Record<LogLevel, string> = {
   error:   "ERR  ",
 };
 
-export function LiveLog({ logs }: { logs: LogEntry[] }) {
+export function LiveLog({ logs, onClear }: { logs: LogEntry[]; onClear?: () => void }) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
 
@@ -53,6 +53,17 @@ export function LiveLog({ logs }: { logs: LogEntry[] }) {
                 {copied ? <Check size={10} className="text-[#22d3a5]" /> : <Copy size={10} />}
                 {copied ? "copied" : "copy"}
               </button>
+              {onClear && (
+                <button
+                  onClick={onClear}
+                  title="Clear logs"
+                  className="flex items-center gap-1 text-[10px] font-mono text-[#4a4a6a]
+                             hover:text-[#f43f5e] transition-colors"
+                >
+                  <Trash2 size={10} />
+                  clear
+                </button>
+              )}
             </>
           )}
           <span className="text-[10px] font-mono text-[#4a4a6a]">{logs.length} entries</span>

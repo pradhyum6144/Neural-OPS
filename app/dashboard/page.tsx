@@ -238,7 +238,7 @@ export default function DashboardPage() {
                   isSpeaking={isSpeaking}
                   onReplaySpeech={replay}
                 />
-                <LiveLog logs={state.logs} />
+                <LiveLog logs={state.logs} onClear={() => dispatch({ type: "CLEAR_LOGS" })} />
               </motion.div>
 
               {/* RIGHT */}

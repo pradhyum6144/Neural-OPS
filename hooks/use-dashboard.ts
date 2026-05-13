@@ -75,7 +75,8 @@ type Action =
   | { type: "SET_REPORT_OPEN"; open: boolean }
   | { type: "SET_RETRYING"; id: string | null }
   | { type: "COMPLETE" }
-  | { type: "RESET" };
+  | { type: "RESET" }
+  | { type: "CLEAR_LOGS" };
 
 const INITIAL_AGENTS: AgentState[] = [
   { id: "planner",  name: "Planner",  status: "idle", subStatus: "Awaiting input",      tokens: 0, output: "", durationMs: undefined },
@@ -195,6 +196,9 @@ function reducer(state: DashboardState, action: Action): DashboardState {
 
     case "RESET":
       return { ...INITIAL_STATE };
+
+    case "CLEAR_LOGS":
+      return { ...state, logs: [] };
 
     default:
       return state;
