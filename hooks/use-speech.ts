@@ -17,16 +17,19 @@ export function useSpeech() {
     lastTextRef.current = text;
 
     const utter = new SpeechSynthesisUtterance(text);
-    utter.rate = 0.95;
-    utter.pitch = 1;
+    utter.rate = 0.75;
+    utter.pitch = 0.95;
     utter.volume = 1;
 
-    // prefer a natural voice if available
+    // prefer Indian English voice
     const voices = window.speechSynthesis.getVoices();
-    const preferred = voices.find(
-      (v) => v.lang.startsWith("en") && (v.name.includes("Google") || v.name.includes("Samantha") || v.name.includes("Natural"))
-    );
-    if (preferred) utter.voice = preferred;
+    const indianVoice =
+      voices.find((v) => v.lang === "en-IN") ||
+      voices.find((v) => v.name.toLowerCase().includes("india")) ||
+      voices.find((v) => v.name.includes("Rishi")) ||
+      voices.find((v) => v.name.includes("Veena")) ||
+      voices.find((v) => v.lang.startsWith("en"));
+    if (indianVoice) utter.voice = indianVoice;
 
     utter.onstart = () => setIsSpeaking(true);
     utter.onend = () => setIsSpeaking(false);
