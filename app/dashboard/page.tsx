@@ -187,6 +187,7 @@ export default function DashboardPage() {
           isDone={state.isDone}
           agentsDone={state.agents.filter((a) => a.status === "done" || a.status === "error").length}
           agentsTotal={state.agents.length}
+          pipelineElapsedMs={state.pipelineElapsedMs}
           onMenuOpen={() => setMobileNavOpen(true)}
         />
 

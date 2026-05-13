@@ -8,10 +8,11 @@ interface TopbarProps {
   isDone: boolean;
   agentsDone?: number;
   agentsTotal?: number;
+  pipelineElapsedMs?: number | null;
   onMenuOpen?: () => void;
 }
 
-export function Topbar({ isRunning, isDone, agentsDone = 0, agentsTotal = 5, onMenuOpen }: TopbarProps) {
+export function Topbar({ isRunning, isDone, agentsDone = 0, agentsTotal = 5, pipelineElapsedMs, onMenuOpen }: TopbarProps) {
   const statusLabel = isRunning
     ? "PIPELINE RUNNING"
     : isDone
@@ -72,6 +73,13 @@ export function Topbar({ isRunning, isDone, agentsDone = 0, agentsTotal = 5, onM
                 style={{ color: isRunning ? "#f59e0b" : "#22d3a5" }}>
             {statusLabel}
           </span>
+          {isDone && pipelineElapsedMs != null && (
+            <span className="hidden sm:inline font-mono text-[10px] text-[#4a4a6a]">
+              {pipelineElapsedMs < 60000
+                ? `${(pipelineElapsedMs / 1000).toFixed(1)}s`
+                : `${Math.floor(pipelineElapsedMs / 60000)}m ${Math.floor((pipelineElapsedMs % 60000) / 1000)}s`}
+            </span>
+          )}
         </motion.div>
 
         {/* Avatar */}

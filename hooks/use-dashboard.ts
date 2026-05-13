@@ -56,12 +56,15 @@ export interface DashboardState {
   reportOpen: boolean;
   retryingAgentId: string | null;
   simulateFailure: boolean;
+  pipelineStartedAt: number | null;
+  pipelineElapsedMs: number | null;
 }
 
 type Action =
   | { type: "SET_COMMAND"; payload: string }
   | { type: "SET_SIMULATE_FAILURE"; payload: boolean }
   | { type: "START" }
+  | { type: "SET_PIPELINE_ELAPSED"; ms: number }
   | { type: "AGENT"; id: string; status: AgentStatus; subStatus: string; tokens?: number; output?: string; durationMs?: number }
   | { type: "LOG"; level: LogLevel; message: string }
   | { type: "MEMORY"; key: string; value: string }
@@ -97,6 +100,8 @@ const INITIAL_STATE: DashboardState = {
   reportOpen: false,
   retryingAgentId: null,
   simulateFailure: false,
+  pipelineStartedAt: null,
+  pipelineElapsedMs: null,
 };
 
 let logSeq = 0;
@@ -117,7 +122,10 @@ function reducer(state: DashboardState, action: Action): DashboardState {
     case "START":
       logSeq = 0;
       memSeq = 0;
-      return { ...INITIAL_STATE, command: state.command, simulateFailure: state.simulateFailure, isRunning: true };
+      return { ...INITIAL_STATE, command: state.command, simulateFailure: state.simulateFailure, isRunning: true, pipelineStartedAt: Date.now() };
+
+    case "SET_PIPELINE_ELAPSED":
+      return { ...state, pipelineElapsedMs: action.ms };
 
     case "AGENT":
       return {
@@ -177,7 +185,13 @@ function reducer(state: DashboardState, action: Action): DashboardState {
       return { ...state, retryingAgentId: action.id };
 
     case "COMPLETE":
-      return { ...state, isRunning: false, isDone: true, reportOpen: true };
+      return {
+        ...state,
+        isRunning: false,
+        isDone: true,
+        reportOpen: true,
+        pipelineElapsedMs: state.pipelineStartedAt ? Date.now() - state.pipelineStartedAt : null,
+      };
 
     case "RESET":
       return { ...INITIAL_STATE };
