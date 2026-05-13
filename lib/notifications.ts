@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 import type { AgentBreakdown } from "./tokenTracker";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY ?? "re_placeholder");
 
 export type AlertType = "warning" | "critical" | "spike";
 
