@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Brain, Search, Monitor, TrendingUp, Mic, Volume2, VolumeX } from "lucide-react";
+import { Brain, Search, Monitor, TrendingUp, Mic, Volume2, VolumeX, ChevronDown, ChevronUp } from "lucide-react";
 import { clsx } from "clsx";
 import type { AgentState, AgentStatus } from "@/hooks/use-dashboard";
 import { Waveform } from "./waveform";
@@ -37,16 +38,31 @@ function ThinkingShimmer() {
   );
 }
 
-function OutputPreview({ output }: { output: string }) {
+function OutputPreview({ output, expanded, onToggle }: { output: string; expanded: boolean; onToggle: () => void }) {
   if (!output) return null;
   return (
-    <motion.p
-      initial={{ opacity: 0, height: 0 }}
-      animate={{ opacity: 1, height: "auto" }}
-      className="mt-1.5 font-mono text-[9px] text-[#5050a0] leading-relaxed line-clamp-2 break-words"
-    >
-      {output}
-    </motion.p>
+    <div className="mt-1.5">
+      <motion.p
+        initial={{ opacity: 0, height: 0 }}
+        animate={{ opacity: 1, height: "auto" }}
+        className={clsx(
+          "font-mono text-[9px] text-[#5050a0] leading-relaxed break-words",
+          !expanded && "line-clamp-2"
+        )}
+      >
+        {output}
+      </motion.p>
+      {output.length > 120 && (
+        <button
+          onClick={onToggle}
+          className="mt-0.5 flex items-center gap-0.5 text-[9px] font-mono text-[#4040a0]
+                     hover:text-[#6366f1] transition-colors"
+        >
+          {expanded ? <ChevronUp size={9} /> : <ChevronDown size={9} />}
+          {expanded ? "less" : "more"}
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -61,6 +77,7 @@ function AgentCard({
   isSpeaking?: boolean;
   onReplaySpeech?: () => void;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const Icon = ICONS[agent.id] ?? Brain;
   const cfg = STATUS_CONFIG[agent.status] ?? STATUS_CONFIG.idle;
   const isActive = agent.status === "active";
@@ -159,7 +176,9 @@ function AgentCard({
       </div>
 
       {/* Streaming output preview */}
-      {isActive && agent.output && <OutputPreview output={agent.output} />}
+      {(isActive || agent.status === "done") && agent.output && (
+        <OutputPreview output={agent.output} expanded={expanded} onToggle={() => setExpanded((v) => !v)} />
+      )}
 
       {/* Voice waveform + replay */}
       {agent.id === "voice" && (agent.status === "active" || agent.status === "done") && (
