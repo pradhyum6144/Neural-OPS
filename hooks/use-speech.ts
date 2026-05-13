@@ -11,7 +11,7 @@ export function useSpeech() {
     return () => { window.speechSynthesis?.cancel(); };
   }, []);
 
-  const speak = useCallback((text: string) => {
+  const speak = useCallback((text: string, lang?: string) => {
     if (typeof window === "undefined" || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     lastTextRef.current = text;
@@ -20,16 +20,19 @@ export function useSpeech() {
     utter.rate = 0.75;
     utter.pitch = 0.95;
     utter.volume = 1;
+    if (lang) utter.lang = lang;
 
-    // prefer Indian English voice
+    // Prefer a voice matching the requested language, fall back to Indian English
     const voices = window.speechSynthesis.getVoices();
-    const indianVoice =
+    const targetLang = lang ?? "en-IN";
+    const matchedVoice =
+      voices.find((v) => v.lang === targetLang) ||
       voices.find((v) => v.lang === "en-IN") ||
       voices.find((v) => v.name.toLowerCase().includes("india")) ||
       voices.find((v) => v.name.includes("Rishi")) ||
       voices.find((v) => v.name.includes("Veena")) ||
       voices.find((v) => v.lang.startsWith("en"));
-    if (indianVoice) utter.voice = indianVoice;
+    if (matchedVoice) utter.voice = matchedVoice;
 
     utter.onstart = () => setIsSpeaking(true);
     utter.onend = () => setIsSpeaking(false);

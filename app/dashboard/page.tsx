@@ -7,6 +7,7 @@ import { useDashboard } from "@/hooks/use-dashboard";
 import { useSpeech } from "@/hooks/use-speech";
 import { useWorkflowHistory } from "@/hooks/use-workflow-history";
 import { useSavings } from "@/hooks/use-savings";
+import { useVoiceInput } from "@/hooks/useVoiceInput";
 import { selectModel, MODEL_CONFIGS } from "@/lib/smartRouter";
 import type { ModelKey } from "@/lib/smartRouter";
 import { Sidebar } from "@/components/dashboard/sidebar";
@@ -102,18 +103,25 @@ export default function DashboardPage() {
   const [modelOverride, setModelOverride] = useState<ModelKey | null>(null);
   const prevDoneRef = useRef(false);
 
+  // Voice input — transcription lands directly in the command field
+  const voiceInput = useVoiceInput((transcript) =>
+    dispatch({ type: "SET_COMMAND", payload: transcript })
+  );
+
   const routerResult = useMemo(
     () => (state.command.trim() ? selectModel(state.command) : null),
     [state.command]
   );
 
-  // Speak voice agent output when it completes
+  // Speak voice agent output when it completes (in the selected input language)
   useEffect(() => {
     const voiceAgent = state.agents.find((a) => a.id === "voice");
     if (voiceAgent?.status === "done" && voiceAgent.output) {
       const plainText = voiceAgent.output.replace(/\*\*|##|`/g, "").trim();
-      speak(plainText);
+      speak(plainText, voiceInput.selectedLang.bcp47);
     }
+  // voiceInput.selectedLang intentionally not in deps — we read it at fire time
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.agents, speak]);
 
   // Save to history and record costs when pipeline completes
@@ -215,6 +223,8 @@ export default function DashboardPage() {
           agentsTotal={state.agents.length}
           pipelineElapsedMs={state.pipelineElapsedMs}
           onMenuOpen={() => setMobileNavOpen(true)}
+          onSpeakSummary={() => replay()}
+          isSpeaking={isSpeaking}
         />
 
         <main className="relative flex-1 overflow-y-auto">
@@ -246,6 +256,7 @@ export default function DashboardPage() {
                 simulateFailure={state.simulateFailure}
                 onSimulateFailureToggle={(v) => dispatch({ type: "SET_SIMULATE_FAILURE", payload: v })}
                 inputRef={inputRef}
+                voiceInput={voiceInput}
               />
             </motion.div>
 
