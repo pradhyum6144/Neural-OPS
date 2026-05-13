@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
+import { Copy, Check } from "lucide-react";
 import type { LogEntry, LogLevel } from "@/hooks/use-dashboard";
 
 const LEVEL_STYLE: Record<LogLevel, string> = {
@@ -21,18 +22,38 @@ const LEVEL_LABEL: Record<LogLevel, string> = {
 
 export function LiveLog({ logs }: { logs: LogEntry[] }) {
   const bottomRef = useRef<HTMLDivElement>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [logs]);
 
+  const handleCopy = () => {
+    const text = logs.map((e) => `${e.ts} [${e.level.toUpperCase()}] ${e.message}`).join("\n");
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
   return (
     <div className="nos-panel flex flex-col overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b border-[rgba(99,102,241,0.08)]">
         <span className="nos-label">Live Log</span>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           {logs.length > 0 && (
-            <span className="h-1.5 w-1.5 rounded-full bg-[#22d3a5] animate-pulse" />
+            <>
+              <span className="h-1.5 w-1.5 rounded-full bg-[#22d3a5] animate-pulse" />
+              <button
+                onClick={handleCopy}
+                title="Copy all logs"
+                className="flex items-center gap-1 text-[10px] font-mono text-[#4a4a6a]
+                           hover:text-[#9090b0] transition-colors"
+              >
+                {copied ? <Check size={10} className="text-[#22d3a5]" /> : <Copy size={10} />}
+                {copied ? "copied" : "copy"}
+              </button>
+            </>
           )}
           <span className="text-[10px] font-mono text-[#4a4a6a]">{logs.length} entries</span>
         </div>
