@@ -1,5 +1,6 @@
 import Groq from "groq-sdk";
 import { NextRequest } from "next/server";
+import { getToolsContextString } from "@/lib/composio";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
@@ -36,9 +37,16 @@ Output ONLY valid JSON, nothing else.`,
 };
 
 export async function POST(req: NextRequest) {
-  const { agentType, task, context } = await req.json();
+  const { agentType, task, context, userId } = await req.json() as {
+    agentType: string;
+    task: string;
+    context?: string;
+    userId?: string;
+  };
 
-  const systemPrompt = SYSTEM_PROMPTS[agentType] ?? SYSTEM_PROMPTS.research;
+  const toolsContext = await getToolsContextString(userId ?? "anonymous");
+  const basePrompt = SYSTEM_PROMPTS[agentType] ?? SYSTEM_PROMPTS.research;
+  const systemPrompt = toolsContext ? `${basePrompt}${toolsContext}` : basePrompt;
 
   const userMessage = context
     ? `Task: ${task}\n\nContext from previous agents:\n${context}`

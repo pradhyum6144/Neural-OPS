@@ -60,6 +60,23 @@ create table if not exists public.alert_logs (
 create index if not exists alert_logs_user_id_idx on public.alert_logs (user_id);
 create index if not exists alert_logs_fired_at_idx on public.alert_logs (fired_at desc);
 
+-- 4. user_connections (tool integrations)
+create table if not exists public.user_connections (
+  id           uuid primary key default gen_random_uuid(),
+  user_id      text not null,
+  tool_name    text not null,
+  tool_type    text not null,
+  display_name text not null,
+  access_token text,
+  metadata     jsonb not null default '{}',
+  connected_at timestamptz not null default now(),
+  is_active    boolean not null default true,
+  unique (user_id, tool_name)
+);
+
+create index if not exists user_connections_user_id_idx on public.user_connections (user_id);
+alter table public.user_connections enable row level security;
+
 -- ── Smart Router cost columns (migration) ─────────────────────────────────
 alter table public.token_usage
   add column if not exists cost_inr  numeric not null default 0,

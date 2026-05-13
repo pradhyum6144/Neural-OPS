@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { LayoutDashboard, Settings, Clock, X, RotateCcw, Trash2, LogOut, Bell } from "lucide-react";
+import { LayoutDashboard, Settings, Clock, X, RotateCcw, Trash2, LogOut, Bell, Plug } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
@@ -10,8 +10,9 @@ import { signOut } from "next-auth/react";
 import type { HistoryEntry } from "@/hooks/use-workflow-history";
 
 const NAV = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
-  { icon: Bell, label: "Alert Settings", href: "/settings/alerts" },
+  { icon: LayoutDashboard, label: "Dashboard",       href: "/dashboard" },
+  { icon: Plug,            label: "Connections",     href: "/connections" },
+  { icon: Bell,            label: "Alert Settings",  href: "/settings/alerts" },
 ];
 
 interface SidebarProps {

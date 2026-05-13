@@ -223,7 +223,7 @@ async function streamAgent(
   const res = await fetch("/api/agent", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ agentType, task, context }),
+    body: JSON.stringify({ agentType, task, context, userId: "anonymous" }),
     signal,
   });
 
