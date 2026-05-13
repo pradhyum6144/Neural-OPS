@@ -137,6 +137,28 @@ export function CommandInput({
           </div>
         </div>
 
+        {/* Suggestion chips — only when input is empty and not running */}
+        {!value && !isRunning && (
+          <div className="flex items-center gap-2 px-1 flex-wrap">
+            {[
+              "Research NVIDIA stock and summarize latest AI news",
+              "Analyze Bitcoin market trends and give a recommendation",
+              "Summarize recent breakthroughs in LLM research",
+            ].map((suggestion) => (
+              <button
+                key={suggestion}
+                onClick={() => onChange(suggestion)}
+                className="rounded-lg border border-[rgba(99,102,241,0.15)] bg-[rgba(99,102,241,0.05)]
+                           px-2.5 py-1 text-[10px] text-[#6060a0] hover:text-[#a0a0ff]
+                           hover:border-[rgba(99,102,241,0.3)] hover:bg-[rgba(99,102,241,0.1)]
+                           transition-all duration-150 font-mono truncate max-w-[260px]"
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Toolbar row */}
         <div className="flex items-center gap-3 px-1">
           <button
