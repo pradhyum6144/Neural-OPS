@@ -227,15 +227,20 @@ async function streamAgent(
     if (done) break;
     const lines = decoder.decode(value).split("\n").filter(Boolean);
     for (const line of lines) {
-      const msg = JSON.parse(line);
-      if (msg.type === "token") {
+      let msg: { type: string; text?: string; content?: string; error?: string; usage?: { input_tokens?: number; output_tokens?: number } };
+      try {
+        msg = JSON.parse(line);
+      } catch {
+        continue;
+      }
+      if (msg.type === "token" && msg.text) {
         output += msg.text;
         onToken(msg.text);
-      } else if (msg.type === "done") {
+      } else if (msg.type === "done" && msg.content) {
         output = msg.content;
         tokens = (msg.usage?.input_tokens ?? 0) + (msg.usage?.output_tokens ?? 0);
       } else if (msg.type === "error") {
-        throw new Error(msg.error);
+        throw new Error(msg.error ?? "Unknown stream error");
       }
     }
   }
