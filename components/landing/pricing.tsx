@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Check, Zap } from "lucide-react";
+import Link from "next/link";
 
 const TIERS = [
   {
@@ -142,15 +143,16 @@ export function Pricing() {
               </ul>
 
               {/* CTA */}
-              <button
-                className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-all duration-150 ${
+              <Link
+                href={tier.name === "Enterprise" ? "#" : "/signup"}
+                className={`block w-full py-2.5 rounded-lg text-sm font-semibold text-center transition-all duration-150 ${
                   tier.ctaStyle === "primary"
                     ? "bg-nos-accent text-white hover:bg-indigo-500 shadow-nos-glow"
                     : "border border-[rgba(99,102,241,0.25)] text-nos-text hover:bg-[rgba(99,102,241,0.1)] hover:border-[rgba(99,102,241,0.4)]"
                 }`}
               >
                 {tier.cta}
-              </button>
+              </Link>
             </motion.div>
           ))}
         </div>

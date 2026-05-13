@@ -56,13 +56,13 @@ export function Navbar() {
         {/* CTAs */}
         <div className="flex items-center gap-2">
           <Link
-            href="#"
+            href="/login"
             className="hidden sm:block px-4 py-2 text-sm text-nos-text-muted hover:text-nos-text transition-colors"
           >
             Sign in
           </Link>
           <Link
-            href="#"
+            href="/signup"
             className="nos-btn-primary text-sm px-4 py-2"
           >
             Get started free

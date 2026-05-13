@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { ArrowRight, Play, Cpu, GitBranch, Activity, Zap } from "lucide-react";
+import Link from "next/link";
 import { GridPattern } from "@/components/ui/grid-pattern";
 
 const MOCK_AGENTS = [
@@ -228,14 +229,14 @@ export function Hero() {
           transition={{ delay: 0.3, duration: 0.5 }}
           className="flex flex-col sm:flex-row items-center gap-3"
         >
-          <button className="nos-btn-primary gap-2 px-6 py-3 text-sm font-semibold">
+          <Link href="/signup" className="nos-btn-primary gap-2 px-6 py-3 text-sm font-semibold">
             Start building free
             <ArrowRight size={15} />
-          </button>
-          <button className="nos-btn-ghost nos-panel-2 gap-2 px-6 py-3 text-sm font-medium border border-[rgba(99,102,241,0.2)]">
+          </Link>
+          <Link href="/dashboard" className="nos-btn-ghost nos-panel-2 gap-2 px-6 py-3 text-sm font-medium border border-[rgba(99,102,241,0.2)]">
             <Play size={13} className="fill-current" />
             View live demo
-          </button>
+          </Link>
         </motion.div>
 
         {/* Social proof micro-line */}
