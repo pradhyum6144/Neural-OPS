@@ -77,6 +77,34 @@ create table if not exists public.user_connections (
 create index if not exists user_connections_user_id_idx on public.user_connections (user_id);
 alter table public.user_connections enable row level security;
 
+-- 5. deployments
+create table if not exists public.deployments (
+  id              uuid primary key default gen_random_uuid(),
+  user_id         text not null,
+  pipeline_config jsonb not null default '{}',
+  deploy_type     text not null check (deploy_type in ('api', 'whatsapp')),
+  endpoint_id     text unique,
+  endpoint_url    text,
+  api_key         text,
+  whatsapp_number text,
+  total_calls     integer not null default 0,
+  created_at      timestamptz not null default now(),
+  is_active       boolean not null default true
+);
+
+create index if not exists deployments_user_id_idx on public.deployments (user_id);
+alter table public.deployments enable row level security;
+
+-- Helper to atomically increment call count
+create or replace function public.increment_deployment_calls(p_endpoint_id text)
+returns void language plpgsql as $$
+begin
+  update public.deployments
+  set total_calls = total_calls + 1
+  where endpoint_id = p_endpoint_id;
+end;
+$$;
+
 -- ── Smart Router cost columns (migration) ─────────────────────────────────
 alter table public.token_usage
   add column if not exists cost_inr  numeric not null default 0,

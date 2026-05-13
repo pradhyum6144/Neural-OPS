@@ -20,6 +20,7 @@ import { InfraHeatmap } from "@/components/dashboard/infra-heatmap";
 import { MemoryNodes } from "@/components/dashboard/memory-nodes";
 import { FinalReport } from "@/components/dashboard/final-report";
 import { RouterBadge } from "@/components/dashboard/RouterBadge";
+import { DeployModal } from "@/components/dashboard/DeployModal";
 import { GridPattern } from "@/components/ui/grid-pattern";
 import type { AgentReport } from "@/hooks/use-dashboard";
 
@@ -101,6 +102,7 @@ export default function DashboardPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [modelOverride, setModelOverride] = useState<ModelKey | null>(null);
+  const [deployOpen, setDeployOpen] = useState(false);
   const prevDoneRef = useRef(false);
 
   // Voice input — transcription lands directly in the command field
@@ -271,6 +273,34 @@ export default function DashboardPage() {
               )}
             </AnimatePresence>
 
+            {/* Deploy button — only after pipeline completes */}
+            <AnimatePresence>
+              {state.isDone && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  className="mx-4 md:mx-6"
+                >
+                  <button
+                    onClick={() => setDeployOpen(true)}
+                    className="flex items-center gap-2 rounded-xl border border-[rgba(99,102,241,0.4)]
+                               bg-[rgba(99,102,241,0.06)] px-5 py-2.5 text-sm font-semibold text-[#8080d0]
+                               hover:border-[rgba(99,102,241,0.7)] hover:bg-[rgba(99,102,241,0.12)]
+                               hover:text-[#a0a0ff] transition-all duration-150
+                               shadow-[0_0_16px_rgba(99,102,241,0.08)]"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                      <path d="M7 1L10 5H8V9H6V5H4L7 1Z" fill="currentColor" />
+                      <rect x="2" y="11" width="10" height="2" rx="1" fill="currentColor" opacity="0.6" />
+                    </svg>
+                    Deploy this pipeline
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* ── Main grid: 2 cols on xl ───────────────────────────────── */}
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 md:gap-4">
 
@@ -335,6 +365,15 @@ export default function DashboardPage() {
         onClose={() => dispatch({ type: "SET_REPORT_OPEN", open: false })}
         onExport={handleExport}
       />
+
+      <AnimatePresence>
+        {deployOpen && (
+          <DeployModal
+            command={state.command}
+            onClose={() => setDeployOpen(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
