@@ -185,6 +185,8 @@ export default function DashboardPage() {
         <Topbar
           isRunning={state.isRunning}
           isDone={state.isDone}
+          agentsDone={state.agents.filter((a) => a.status === "done" || a.status === "error").length}
+          agentsTotal={state.agents.length}
           onMenuOpen={() => setMobileNavOpen(true)}
         />
 

@@ -6,10 +6,12 @@ import { motion } from "framer-motion";
 interface TopbarProps {
   isRunning: boolean;
   isDone: boolean;
+  agentsDone?: number;
+  agentsTotal?: number;
   onMenuOpen?: () => void;
 }
 
-export function Topbar({ isRunning, isDone, onMenuOpen }: TopbarProps) {
+export function Topbar({ isRunning, isDone, agentsDone = 0, agentsTotal = 5, onMenuOpen }: TopbarProps) {
   const statusLabel = isRunning
     ? "PIPELINE RUNNING"
     : isDone
@@ -23,9 +25,20 @@ export function Topbar({ isRunning, isDone, onMenuOpen }: TopbarProps) {
     : "bg-[#22d3a5] animate-pulse";
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center justify-between
+    <header className="sticky top-0 z-30 flex flex-col
                        border-b border-[rgba(99,102,241,0.1)] bg-[rgba(10,10,15,0.9)]
-                       backdrop-blur-xl px-4 md:px-6">
+                       backdrop-blur-xl">
+      {/* Pipeline progress bar */}
+      {(isRunning || isDone) && (
+        <div className="h-0.5 w-full bg-[rgba(99,102,241,0.08)]">
+          <motion.div
+            className="h-full bg-[#6366f1]"
+            animate={{ width: isDone ? "100%" : `${Math.round((agentsDone / agentsTotal) * 100)}%` }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+          />
+        </div>
+      )}
+      <div className="flex h-14 items-center justify-between px-4 md:px-6">
       <div className="flex items-center gap-3">
         {/* Hamburger — mobile only */}
         <button
@@ -67,6 +80,7 @@ export function Topbar({ isRunning, isDone, onMenuOpen }: TopbarProps) {
                         text-xs font-bold text-[#6366f1]">
           NP
         </div>
+      </div>
       </div>
     </header>
   );
