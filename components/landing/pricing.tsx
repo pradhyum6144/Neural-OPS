@@ -1,89 +1,90 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Check, Zap } from "lucide-react";
+import { Check } from "lucide-react";
 import Link from "next/link";
 
 const TIERS = [
   {
-    name: "Free",
-    price: "$0",
-    period: "forever",
-    tagline: "For solo builders and experiments.",
+    name: "Starter",
+    price: "Free",
+    period: "",
+    tagline: "Get started with no commitment.",
     highlight: false,
     cta: "Start for free",
-    ctaStyle: "secondary" as const,
+    ctaHref: "/signup",
     features: [
-      "Up to 3 agents",
-      "1 active pipeline",
-      "10k events / month",
-      "Community memory nodes",
-      "7-day log retention",
+      "10,000 tokens per day",
+      "3 AI specialists",
+      "Community task templates",
+      "Hindi and English support",
+      "Basic report export",
       "Community support",
     ],
   },
   {
     name: "Pro",
-    price: "$29",
+    price: "₹999",
     period: "/ month",
-    tagline: "For teams shipping real products.",
+    tagline: "For professionals who need more power.",
     highlight: true,
     badge: "Most popular",
-    cta: "Get started",
-    ctaStyle: "primary" as const,
+    cta: "Start Pro",
+    ctaHref: "/signup",
     features: [
-      "Unlimited agents",
-      "Unlimited pipelines",
-      "5M events / month",
-      "Persistent memory nodes",
-      "90-day log retention",
-      "Browser replay (unlimited)",
-      "Voice AI integration",
+      "500,000 tokens per day",
+      "All 5 AI specialists",
+      "Smart Router — cheapest model auto-selected",
+      "Voice commands and spoken results",
+      "Hindi, Tamil, Telugu + 6 more languages",
+      "Full history and report archive",
       "Priority support",
     ],
   },
   {
-    name: "Enterprise",
-    price: "Custom",
-    period: "",
-    tagline: "For teams that need SLAs and control.",
+    name: "Team",
+    price: "₹4,999",
+    period: "/ month",
+    tagline: "For businesses and teams at scale.",
     highlight: false,
-    cta: "Contact sales",
-    ctaStyle: "secondary" as const,
+    cta: "Contact us",
+    ctaHref: "#",
     features: [
-      "Everything in Pro",
-      "SSO / SAML",
-      "Custom retention",
-      "Dedicated infra",
-      "Audit logs",
-      "SLA guarantee",
-      "Onboarding engineer",
-      "Custom contracts",
+      "Unlimited tokens",
+      "Deploy as WhatsApp bot or API",
+      "White-label with your brand",
+      "Custom AI model integrations",
+      "Team workspace and permissions",
+      "SLA and dedicated support",
+      "Onboarding assistance",
     ],
   },
 ];
 
 export function Pricing() {
   return (
-    <section id="pricing" className="relative py-32 px-6 overflow-hidden">
-      {/* BG accent */}
-      <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-nos-accent opacity-[0.04] blur-[160px]" />
+    <section id="pricing" className="relative py-28 px-6 overflow-hidden">
+      {/* Background glow */}
+      <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-[#6366f1] opacity-[0.04] blur-[160px]" />
 
       <div className="mx-auto max-w-7xl relative z-10">
+
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="mb-16 text-center"
+          className="mb-14 text-center"
         >
-          <div className="nos-label mb-4">Pricing</div>
-          <h2 className="text-[clamp(1.8rem,4vw,3rem)] font-bold tracking-tight text-nos-text">
-            Simple, transparent pricing
+          <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(99,102,241,0.2)] bg-[rgba(99,102,241,0.06)] px-4 py-1.5 mb-5">
+            <span className="text-xs font-semibold text-[#6366f1] uppercase tracking-wider">Pricing</span>
+          </div>
+          <h2 className="text-[clamp(1.8rem,4vw,2.8rem)] font-bold tracking-tight text-[#e0e0ff]">
+            Simple pricing in rupees
           </h2>
-          <p className="mt-4 text-nos-text-muted">
-            Start free. Scale when you're ready. No hidden fees.
+          <p className="mt-4 text-[#7070a0]">
+            No dollar billing. No hidden fees. Pay via UPI or card. Cancel any time.
           </p>
         </motion.div>
 
@@ -98,44 +99,44 @@ export function Pricing() {
               transition={{ delay: i * 0.1, duration: 0.5 }}
               className={`relative flex flex-col rounded-2xl p-8 ${
                 tier.highlight
-                  ? "border border-nos-accent bg-[rgba(99,102,241,0.1)] shadow-nos-glow-lg"
-                  : "border border-[rgba(99,102,241,0.12)] bg-[rgba(99,102,241,0.04)]"
+                  ? "border border-[#6366f1] bg-[rgba(99,102,241,0.1)] shadow-[0_0_40px_rgba(99,102,241,0.15)]"
+                  : "border border-[rgba(99,102,241,0.12)] bg-[rgba(10,10,20,0.6)]"
               }`}
             >
               {/* Popular badge */}
               {tier.badge && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className="flex items-center gap-1.5 rounded-full bg-nos-accent px-3 py-1 text-xs font-semibold text-white shadow-nos-glow">
-                    <Zap size={11} className="fill-current" />
+                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                  <span className="rounded-full bg-[#6366f1] px-4 py-1 text-xs font-semibold text-white shadow-[0_0_12px_rgba(99,102,241,0.4)]">
                     {tier.badge}
                   </span>
                 </div>
               )}
 
-              {/* Tier name */}
+              {/* Plan name and price */}
               <div className="mb-6">
-                <p className="text-sm font-medium text-nos-text-muted mb-2">{tier.name}</p>
+                <p className="text-sm font-medium text-[#7070a0] mb-2">{tier.name}</p>
                 <div className="flex items-end gap-1 mb-2">
-                  <span className={`text-4xl font-bold tracking-tight ${tier.highlight ? "text-white" : "text-nos-text"}`}>
+                  <span className="text-4xl font-bold tracking-tight text-[#e0e0ff]">
                     {tier.price}
                   </span>
                   {tier.period && (
-                    <span className="text-nos-text-muted text-sm pb-1">{tier.period}</span>
+                    <span className="text-[#7070a0] text-sm pb-1">{tier.period}</span>
                   )}
                 </div>
-                <p className="text-sm text-nos-text-muted">{tier.tagline}</p>
+                <p className="text-sm text-[#7070a0]">{tier.tagline}</p>
               </div>
 
               {/* Divider */}
-              <div className="nos-divider mb-6" />
+              <div className="border-t border-[rgba(99,102,241,0.1)] mb-6" />
 
               {/* Features */}
               <ul className="flex-1 space-y-3 mb-8">
                 {tier.features.map((f) => (
-                  <li key={f} className="flex items-center gap-3 text-sm text-nos-text-muted">
+                  <li key={f} className="flex items-start gap-3 text-sm text-[#9090b0]">
                     <Check
                       size={14}
-                      className={tier.highlight ? "text-nos-accent flex-shrink-0" : "text-nos-green flex-shrink-0"}
+                      className="flex-shrink-0 mt-0.5"
+                      style={{ color: tier.highlight ? "#6366f1" : "#22d3a5" }}
                     />
                     {f}
                   </li>
@@ -144,11 +145,11 @@ export function Pricing() {
 
               {/* CTA */}
               <Link
-                href={tier.name === "Enterprise" ? "#" : "/signup"}
-                className={`block w-full py-2.5 rounded-lg text-sm font-semibold text-center transition-all duration-150 ${
-                  tier.ctaStyle === "primary"
-                    ? "bg-nos-accent text-white hover:bg-indigo-500 shadow-nos-glow"
-                    : "border border-[rgba(99,102,241,0.25)] text-nos-text hover:bg-[rgba(99,102,241,0.1)] hover:border-[rgba(99,102,241,0.4)]"
+                href={tier.ctaHref}
+                className={`block w-full py-3 rounded-xl text-sm font-semibold text-center transition-all duration-150 ${
+                  tier.highlight
+                    ? "bg-[#6366f1] text-white hover:bg-indigo-500 shadow-[0_0_16px_rgba(99,102,241,0.3)] hover:shadow-[0_0_24px_rgba(99,102,241,0.5)]"
+                    : "border border-[rgba(99,102,241,0.25)] text-[#e0e0ff] hover:bg-[rgba(99,102,241,0.1)] hover:border-[rgba(99,102,241,0.4)]"
                 }`}
               >
                 {tier.cta}
@@ -157,14 +158,14 @@ export function Pricing() {
           ))}
         </div>
 
-        {/* Fine print */}
+        {/* Payment note */}
         <motion.p
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          className="mt-8 text-center text-xs text-nos-text-muted"
+          className="mt-8 text-center text-sm text-[#5050a0]"
         >
-          All plans include 99.9% uptime SLA on infrastructure. Billed monthly. Cancel anytime.
+          Pay via UPI, Razorpay, or credit card. No dollar billing. Cancel any time.
         </motion.p>
       </div>
     </section>

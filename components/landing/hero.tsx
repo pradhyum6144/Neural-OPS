@@ -1,191 +1,239 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { ArrowRight, Play, Cpu, GitBranch, Activity, Zap } from "lucide-react";
+import { motion, useInView } from "framer-motion";
+import { ArrowRight, Play } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { GridPattern } from "@/components/ui/grid-pattern";
 
-const MOCK_AGENTS = [
-  { id: "AGT-001", name: "ResearchBot", status: "running", task: "Scraping arxiv.org...", color: "#22d3a5" },
-  { id: "AGT-002", name: "SynthAgent", status: "running", task: "Summarising 14 papers...", color: "#6366f1" },
-  { id: "AGT-003", name: "WriterAgent", status: "idle", task: "Awaiting context...", color: "#f59e0b" },
-  { id: "AGT-004", name: "PublisherBot", status: "idle", task: "Queued", color: "#6b6b8a" },
+// ── Typing animation ──────────────────────────────────────────────────────────
+
+const COMMANDS = [
+  "Research top competitors for my D2C brand",
+  "Summarize today's stock market in Hindi",
+  "Write 30 days of Instagram captions for my café",
+  "Find suppliers for my manufacturing unit",
 ];
 
-const MOCK_LOGS = [
-  "→ ResearchBot: fetched 47 results [t+0.8s]",
-  "→ SynthAgent: tokenised 62k tokens [t+1.2s]",
-  "→ SynthAgent: LLM call in progress... [t+1.4s]",
-  "→ WriterAgent: context pending [t+1.4s]",
-];
+function TypingDemo() {
+  const [cmdIndex, setCmdIndex]     = useState(0);
+  const [displayed, setDisplayed]   = useState("");
+  const [deleting, setDeleting]     = useState(false);
 
-function AgentCard({ agent, delay }: { agent: typeof MOCK_AGENTS[0]; delay: number }) {
-  const isRunning = agent.status === "running";
+  useEffect(() => {
+    const full = COMMANDS[cmdIndex];
+    let timeout: ReturnType<typeof setTimeout>;
+
+    if (!deleting && displayed.length < full.length) {
+      timeout = setTimeout(() => setDisplayed(full.slice(0, displayed.length + 1)), 42);
+    } else if (!deleting && displayed.length === full.length) {
+      timeout = setTimeout(() => setDeleting(true), 1800);
+    } else if (deleting && displayed.length > 0) {
+      timeout = setTimeout(() => setDisplayed(displayed.slice(0, -1)), 22);
+    } else if (deleting && displayed.length === 0) {
+      setDeleting(false);
+      setCmdIndex((i) => (i + 1) % COMMANDS.length);
+    }
+
+    return () => clearTimeout(timeout);
+  }, [displayed, deleting, cmdIndex]);
+
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -8 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay, duration: 0.4 }}
-      className="flex items-center gap-3 rounded-lg border border-[rgba(99,102,241,0.1)] bg-[rgba(99,102,241,0.04)] px-3 py-2.5"
-    >
-      <div className="relative flex-shrink-0">
-        <div
-          className="h-2 w-2 rounded-full"
-          style={{ backgroundColor: agent.color }}
+    <div className="rounded-xl border border-[rgba(99,102,241,0.25)] bg-[rgba(10,10,20,0.9)] px-4 py-3.5 flex items-center gap-3">
+      <span className="text-[#6366f1] font-mono text-sm flex-shrink-0">❯</span>
+      <span className="font-mono text-sm text-[#e0e0ff] flex-1 min-h-[20px]">
+        {displayed}
+        <motion.span
+          animate={{ opacity: [1, 0, 1] }}
+          transition={{ duration: 0.9, repeat: Infinity }}
+          className="inline-block w-[2px] h-[14px] bg-[#6366f1] ml-0.5 align-middle"
         />
-        {isRunning && (
-          <div
-            className="absolute inset-0 h-2 w-2 rounded-full animate-ping opacity-60"
-            style={{ backgroundColor: agent.color }}
-          />
-        )}
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-medium text-nos-text truncate">{agent.name}</span>
-          <span className="font-mono text-[10px] text-nos-text-muted flex-shrink-0">{agent.id}</span>
-        </div>
-        <p className="text-[10px] text-nos-text-muted truncate mt-0.5">{agent.task}</p>
-      </div>
-    </motion.div>
+      </span>
+    </div>
   );
 }
 
-function MockCommandCenter() {
+// ── Count-up stat ─────────────────────────────────────────────────────────────
+
+function StatNumber({ target, prefix = "", suffix = "" }: { target: number; prefix?: string; suffix?: string }) {
+  const ref                     = useRef<HTMLSpanElement>(null);
+  const inView                  = useInView(ref, { once: true });
+  const [count, setCount]       = useState(0);
+
+  useEffect(() => {
+    if (!inView) return;
+    let start = 0;
+    const steps = 60;
+    const increment = target / steps;
+    const id = setInterval(() => {
+      start += increment;
+      if (start >= target) { setCount(target); clearInterval(id); }
+      else setCount(Math.floor(start));
+    }, 20);
+    return () => clearInterval(id);
+  }, [inView, target]);
+
+  return (
+    <span ref={ref} className="font-bold text-2xl text-[#e0e0ff]">
+      {prefix}{count.toLocaleString("en-IN")}{suffix}
+    </span>
+  );
+}
+
+// ── Dashboard preview window ──────────────────────────────────────────────────
+
+const AGENTS = [
+  { name: "Planner",  status: "done",    color: "#22d3a5" },
+  { name: "Research", status: "active",  color: "#6366f1" },
+  { name: "Browser",  status: "active",  color: "#a78bfa" },
+  { name: "Finance",  status: "waiting", color: "#f59e0b" },
+  { name: "Summary",  status: "waiting", color: "#6b6b8a" },
+];
+
+function DashboardPreview() {
   return (
     <motion.div
       initial={{ opacity: 0, y: 32, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ delay: 0.5, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-      className="relative w-full max-w-4xl mx-auto"
+      transition={{ delay: 0.55, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+      className="relative w-full max-w-3xl mx-auto mt-10"
     >
-      {/* Glow behind the card */}
-      <div className="absolute inset-0 rounded-2xl bg-nos-accent opacity-[0.06] blur-3xl scale-105" />
+      {/* Glow */}
+      <div className="absolute inset-0 rounded-2xl bg-[#6366f1] opacity-[0.07] blur-3xl scale-105 pointer-events-none" />
 
-      {/* Main window frame */}
-      <div className="relative rounded-2xl border border-[rgba(99,102,241,0.2)] bg-[rgba(10,10,15,0.9)] shadow-[0_0_60px_rgba(99,102,241,0.12)] overflow-hidden">
+      <div className="relative rounded-2xl border border-[rgba(99,102,241,0.2)] bg-[rgba(10,10,18,0.95)] shadow-[0_0_60px_rgba(99,102,241,0.12)] overflow-hidden">
 
         {/* Title bar */}
-        <div className="flex items-center gap-2 border-b border-[rgba(99,102,241,0.1)] px-4 py-3">
+        <div className="flex items-center gap-3 border-b border-[rgba(99,102,241,0.1)] px-4 py-3">
           <div className="flex gap-1.5">
             <div className="h-2.5 w-2.5 rounded-full bg-[#f43f5e]" />
             <div className="h-2.5 w-2.5 rounded-full bg-[#f59e0b]" />
             <div className="h-2.5 w-2.5 rounded-full bg-[#22d3a5]" />
           </div>
-          <div className="mx-auto flex items-center gap-2 rounded-md bg-[rgba(99,102,241,0.08)] px-3 py-1">
-            <div className="h-1.5 w-1.5 rounded-full bg-nos-green animate-pulse" />
-            <span className="font-mono text-[11px] text-nos-text-muted">neural-ops — pipeline/research-synthesis</span>
+          <div className="flex-1 flex items-center gap-2 rounded-md bg-[rgba(99,102,241,0.08)] px-3 py-1">
+            <div className="h-1.5 w-1.5 rounded-full bg-[#22d3a5] animate-pulse" />
+            <span className="font-mono text-[11px] text-[#6060a0]">neural-ops — your AI team is working</span>
           </div>
         </div>
 
-        {/* Content grid */}
-        <div className="grid grid-cols-3 divide-x divide-[rgba(99,102,241,0.08)]" style={{ minHeight: 280 }}>
+        {/* Command input preview */}
+        <div className="px-4 pt-3 pb-2">
+          <TypingDemo />
+        </div>
 
-          {/* Left: agent list */}
-          <div className="col-span-1 flex flex-col gap-2 p-4">
-            <div className="nos-label mb-1">Active Agents</div>
-            {MOCK_AGENTS.map((agent, i) => (
-              <AgentCard key={agent.id} agent={agent} delay={0.7 + i * 0.1} />
-            ))}
-          </div>
-
-          {/* Center: flow graph */}
-          <div className="col-span-1 flex items-center justify-center p-4">
-            <svg width="180" height="200" viewBox="0 0 180 200">
-              {/* Edges */}
-              <line x1="90" y1="32" x2="50" y2="90" stroke="rgba(99,102,241,0.3)" strokeWidth="1" strokeDasharray="4 3" />
-              <line x1="90" y1="32" x2="130" y2="90" stroke="rgba(99,102,241,0.3)" strokeWidth="1" strokeDasharray="4 3" />
-              <line x1="50" y1="108" x2="90" y2="158" stroke="rgba(99,102,241,0.25)" strokeWidth="1" strokeDasharray="4 3" />
-              <line x1="130" y1="108" x2="90" y2="158" stroke="rgba(99,102,241,0.25)" strokeWidth="1" strokeDasharray="4 3" />
-
-              {/* Nodes */}
-              {/* Trigger */}
-              <circle cx="90" cy="28" r="14" fill="rgba(99,102,241,0.15)" stroke="rgba(99,102,241,0.5)" strokeWidth="1" />
-              <text x="90" y="32" textAnchor="middle" fill="#6366f1" fontSize="9" fontFamily="monospace">⚡ Start</text>
-
-              {/* ResearchBot */}
-              <rect x="26" y="84" width="48" height="24" rx="6" fill="rgba(34,211,165,0.1)" stroke="rgba(34,211,165,0.4)" strokeWidth="1" />
-              <text x="50" y="100" textAnchor="middle" fill="#22d3a5" fontSize="8" fontFamily="monospace">Research</text>
-
-              {/* SynthAgent */}
-              <rect x="106" y="84" width="48" height="24" rx="6" fill="rgba(99,102,241,0.1)" stroke="rgba(99,102,241,0.4)" strokeWidth="1" />
-              <text x="130" y="100" textAnchor="middle" fill="#6366f1" fontSize="8" fontFamily="monospace">Synth</text>
-
-              {/* WriterAgent */}
-              <rect x="66" y="152" width="48" height="24" rx="6" fill="rgba(245,158,11,0.08)" stroke="rgba(245,158,11,0.3)" strokeWidth="1" />
-              <text x="90" y="168" textAnchor="middle" fill="#f59e0b" fontSize="8" fontFamily="monospace">Writer</text>
-
-              {/* Running indicator on Research */}
-              <circle cx="68" cy="88" r="3" fill="#22d3a5">
-                <animate attributeName="opacity" values="1;0.3;1" dur="1.5s" repeatCount="indefinite" />
-              </circle>
-              <circle cx="148" cy="88" r="3" fill="#6366f1">
-                <animate attributeName="opacity" values="1;0.3;1" dur="1.2s" repeatCount="indefinite" begin="0.3s" />
-              </circle>
-            </svg>
-          </div>
-
-          {/* Right: logs */}
-          <div className="col-span-1 flex flex-col p-4">
-            <div className="nos-label mb-2">Live Logs</div>
-            <div className="flex-1 space-y-1.5 font-mono">
-              {MOCK_LOGS.map((log, i) => (
-                <motion.p
-                  key={i}
-                  initial={{ opacity: 0, x: 6 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 1 + i * 0.25 }}
-                  className="text-[10px] text-nos-text-muted leading-relaxed"
+        {/* Agent cards */}
+        <div className="px-4 pb-4 grid grid-cols-5 gap-2 mt-2">
+          {AGENTS.map((agent, i) => (
+            <motion.div
+              key={agent.name}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.8 + i * 0.08 }}
+              className="rounded-xl border bg-[rgba(10,10,20,0.8)] p-2.5 flex flex-col gap-1.5"
+              style={{ borderColor: `${agent.color}30` }}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-semibold text-[#c0c0e0]">{agent.name}</span>
+                <span
+                  className="relative h-1.5 w-1.5 rounded-full flex-shrink-0"
+                  style={{ background: agent.color }}
                 >
-                  {log}
-                </motion.p>
-              ))}
-              <motion.span
-                animate={{ opacity: [1, 0, 1] }}
-                transition={{ duration: 1, repeat: Infinity }}
-                className="text-[10px] text-nos-accent font-mono"
+                  {agent.status === "active" && (
+                    <span
+                      className="absolute inset-0 rounded-full animate-ping opacity-70"
+                      style={{ background: agent.color }}
+                    />
+                  )}
+                </span>
+              </div>
+              <span
+                className="text-[9px] font-mono uppercase tracking-wide"
+                style={{ color: agent.color }}
               >
-                ▍
-              </motion.span>
-            </div>
-          </div>
+                {agent.status === "active" ? "running" : agent.status}
+              </span>
+            </motion.div>
+          ))}
         </div>
 
-        {/* Status bar */}
-        <div className="flex items-center justify-between border-t border-[rgba(99,102,241,0.08)] px-4 py-2">
-          <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1.5 text-[10px] text-nos-text-muted">
-              <Cpu size={10} className="text-nos-accent" /> 4 agents
-            </span>
-            <span className="flex items-center gap-1.5 text-[10px] text-nos-text-muted">
-              <Activity size={10} className="text-nos-green" /> 2 running
-            </span>
-            <span className="flex items-center gap-1.5 text-[10px] text-nos-text-muted">
-              <GitBranch size={10} className="text-nos-amber" /> 1 pipeline
-            </span>
-          </div>
-          <span className="flex items-center gap-1.5 text-[10px] text-nos-green">
-            <Zap size={10} /> 47 events/s
-          </span>
+        {/* Live log ticker */}
+        <div className="border-t border-[rgba(99,102,241,0.08)] px-4 py-2.5 flex items-center gap-2">
+          <span className="text-[10px] font-mono text-[#22d3a5]">✓</span>
+          <motion.span
+            key="log"
+            animate={{ opacity: [0, 1] }}
+            transition={{ duration: 0.3 }}
+            className="font-mono text-[10px] text-[#5050a0]"
+          >
+            Research agent: found 14 sources · Finance agent: fetching market data…
+          </motion.span>
+          <motion.span
+            animate={{ opacity: [1, 0, 1] }}
+            transition={{ duration: 1, repeat: Infinity }}
+            className="font-mono text-[10px] text-[#6366f1]"
+          >
+            ▍
+          </motion.span>
         </div>
       </div>
 
-      {/* Reflection gradient at bottom */}
-      <div className="absolute -bottom-px inset-x-0 h-24 bg-gradient-to-t from-[#0a0a0f] to-transparent pointer-events-none" />
+      {/* Fade out bottom */}
+      <div className="absolute bottom-0 inset-x-0 h-16 bg-gradient-to-t from-[#0a0a0f] to-transparent pointer-events-none rounded-b-2xl" />
     </motion.div>
   );
 }
 
-export function Hero() {
-  return (
-    <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden pt-16">
-      <GridPattern fade className="opacity-40" />
+// ── Video modal ───────────────────────────────────────────────────────────────
 
-      {/* Blobs */}
-      <div className="pointer-events-none absolute left-1/4 top-1/4 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-nos-accent opacity-[0.05] blur-[140px]" />
+function VideoModal({ onClose }: { onClose: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.92, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.92, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 360, damping: 30 }}
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-3xl rounded-2xl border border-[rgba(99,102,241,0.25)] bg-[rgba(12,12,22,0.98)] p-6 flex flex-col items-center gap-4"
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-[#6060a0] hover:text-[#e0e0ff] transition-colors text-xl font-bold"
+        >
+          ✕
+        </button>
+        <div className="w-full aspect-video rounded-xl bg-[rgba(99,102,241,0.08)] border border-[rgba(99,102,241,0.15)] flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3 text-[#4a4a6a]">
+            <Play size={40} className="text-[#6366f1] opacity-60" />
+            <span className="font-mono text-sm">Demo video coming soon</span>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ── Main Hero ─────────────────────────────────────────────────────────────────
+
+export function Hero() {
+  const [videoOpen, setVideoOpen] = useState(false);
+
+  return (
+    <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden pt-20 pb-12">
+      <GridPattern fade className="opacity-30" />
+
+      {/* Ambient blobs */}
+      <div className="pointer-events-none absolute left-1/4 top-1/4 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#6366f1] opacity-[0.05] blur-[160px]" />
       <div className="pointer-events-none absolute right-1/4 bottom-1/3 h-[400px] w-[400px] rounded-full bg-[#22d3a5] opacity-[0.04] blur-[120px]" />
 
-      <div className="relative z-10 flex flex-col items-center gap-8 px-6 text-center">
+      <div className="relative z-10 flex flex-col items-center gap-6 px-6 text-center max-w-4xl mx-auto">
+
         {/* Eyebrow badge */}
         <motion.div
           initial={{ opacity: 0, y: -8 }}
@@ -193,33 +241,35 @@ export function Hero() {
           transition={{ duration: 0.4 }}
           className="flex items-center gap-2 rounded-full border border-[rgba(99,102,241,0.3)] bg-[rgba(99,102,241,0.08)] px-4 py-1.5"
         >
-          <div className="h-1.5 w-1.5 rounded-full bg-nos-green animate-pulse" />
-          <span className="text-xs font-medium text-nos-text-muted">
-            Now in public beta — <span className="text-nos-accent">try it free</span>
+          <div className="h-1.5 w-1.5 rounded-full bg-[#22d3a5] animate-pulse" />
+          <span className="text-xs font-medium text-[#8080b0]">
+            Now in public beta — <span className="text-[#6366f1]">try it free today</span>
           </span>
         </motion.div>
 
         {/* Headline */}
         <motion.h1
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="max-w-4xl text-[clamp(2.5rem,6vw,4.5rem)] font-bold leading-[1.1] tracking-tight"
+          className="text-[clamp(2.4rem,6vw,4.2rem)] font-bold leading-[1.1] tracking-tight"
         >
-          The Visual Operating System{" "}
-          <br className="hidden sm:block" />
-          <span className="animated-gradient-text">for AI Agents</span>
+          Your AI team.{" "}
+          <span className="hero-gradient-text">Working 24/7.</span>
+          <br />
+          No coding needed.
         </motion.h1>
 
-        {/* Subtext */}
+        {/* Sub-headline */}
         <motion.p
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.5 }}
-          className="max-w-xl text-lg text-nos-text-muted leading-relaxed"
+          className="max-w-2xl text-lg text-[#8080b0] leading-relaxed"
         >
-          Watch your AI agents think, collaborate, and execute —{" "}
-          <span className="text-nos-text">in real time.</span>
+          Tell Neural OPS what you need in plain English — or just speak it.
+          Watch 5 AI specialists research, analyze, and deliver results
+          while you focus on what matters.
         </motion.p>
 
         {/* CTAs */}
@@ -227,36 +277,52 @@ export function Hero() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.5 }}
-          className="flex flex-col sm:flex-row items-center gap-3"
+          className="flex flex-col sm:flex-row items-center gap-3 mt-1"
         >
-          <Link href="/signup" className="nos-btn-primary gap-2 px-6 py-3 text-sm font-semibold">
-            Start building free
+          <Link
+            href="/signup"
+            className="flex items-center gap-2 rounded-lg bg-[#6366f1] hover:bg-indigo-500 px-6 py-3 text-sm font-semibold text-white shadow-[0_0_20px_rgba(99,102,241,0.35)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] transition-all duration-150"
+          >
+            Start for free
             <ArrowRight size={15} />
           </Link>
-          <Link href="/dashboard" className="nos-btn-ghost nos-panel-2 gap-2 px-6 py-3 text-sm font-medium border border-[rgba(99,102,241,0.2)]">
-            <Play size={13} className="fill-current" />
-            View live demo
-          </Link>
+          <button
+            onClick={() => setVideoOpen(true)}
+            className="flex items-center gap-2 rounded-lg border border-[rgba(99,102,241,0.25)] bg-[rgba(99,102,241,0.06)] px-6 py-3 text-sm font-medium text-[#c0c0e0] hover:border-[rgba(99,102,241,0.4)] hover:bg-[rgba(99,102,241,0.12)] transition-all duration-150"
+          >
+            <Play size={13} className="fill-current text-[#6366f1]" />
+            Watch 2 min demo
+          </button>
         </motion.div>
 
-        {/* Social proof micro-line */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="text-xs text-nos-text-muted"
+        {/* Social proof numbers */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45 }}
+          className="flex flex-col sm:flex-row items-center gap-6 sm:gap-10 mt-2"
         >
-          No credit card required · Free tier forever · Deploy in &lt;2 minutes
-        </motion.p>
+          {[
+            { target: 12400, suffix: "+ tasks run",        label: "and counting" },
+            { target: 42,    prefix: "₹",  suffix: "L saved", label: "in AI costs" },
+            { target: 9,     suffix: " Indian languages",  label: "supported" },
+          ].map(({ target, prefix, suffix, label }) => (
+            <div key={label} className="flex flex-col items-center gap-0.5">
+              <StatNumber target={target} prefix={prefix} suffix={suffix} />
+              <span className="text-xs text-[#5050a0]">{label}</span>
+            </div>
+          ))}
+        </motion.div>
 
-        {/* Mock preview */}
-        <div className="mt-8 w-full max-w-4xl">
-          <MockCommandCenter />
-        </div>
+        {/* Dashboard preview */}
+        <DashboardPreview />
       </div>
 
+      {/* Video modal */}
+      {videoOpen && <VideoModal onClose={() => setVideoOpen(false)} />}
+
       <style>{`
-        .animated-gradient-text {
+        .hero-gradient-text {
           background: linear-gradient(135deg, #e0e0ff 0%, #6366f1 40%, #22d3a5 80%, #6366f1 100%);
           background-size: 300% 300%;
           -webkit-background-clip: text;
