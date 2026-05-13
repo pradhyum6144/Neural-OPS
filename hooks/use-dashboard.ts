@@ -2,7 +2,7 @@
 
 import { useReducer, useCallback, useRef } from "react";
 
-export type AgentStatus = "idle" | "active" | "done" | "error";
+export type AgentStatus = "idle" | "active" | "done" | "error" | "thinking";
 export type LogLevel = "info" | "success" | "warn" | "error";
 
 export interface AgentState {
@@ -11,6 +11,7 @@ export interface AgentState {
   status: AgentStatus;
   subStatus: string;
   tokens: number;
+  output: string;
 }
 
 export interface LogEntry {
@@ -33,6 +34,12 @@ export interface MetricState {
   retries: number;
 }
 
+export interface AgentReport {
+  agentId: string;
+  agentName: string;
+  output: string;
+}
+
 export interface DashboardState {
   agents: AgentState[];
   logs: LogEntry[];
@@ -44,26 +51,34 @@ export interface DashboardState {
   browserUrl: string;
   browserLoading: boolean;
   activeNodeId: string | null;
+  finalReports: AgentReport[];
+  reportOpen: boolean;
+  retryingAgentId: string | null;
+  simulateFailure: boolean;
 }
 
 type Action =
   | { type: "SET_COMMAND"; payload: string }
+  | { type: "SET_SIMULATE_FAILURE"; payload: boolean }
   | { type: "START" }
-  | { type: "AGENT"; id: string; status: AgentStatus; subStatus: string; tokens?: number }
+  | { type: "AGENT"; id: string; status: AgentStatus; subStatus: string; tokens?: number; output?: string }
   | { type: "LOG"; level: LogLevel; message: string }
   | { type: "MEMORY"; key: string; value: string }
   | { type: "METRICS"; patch: Partial<MetricState> }
   | { type: "BROWSER"; url?: string; loading: boolean }
   | { type: "ACTIVE_NODE"; id: string | null }
+  | { type: "ADD_REPORT"; report: AgentReport }
+  | { type: "SET_REPORT_OPEN"; open: boolean }
+  | { type: "SET_RETRYING"; id: string | null }
   | { type: "COMPLETE" }
   | { type: "RESET" };
 
 const INITIAL_AGENTS: AgentState[] = [
-  { id: "planner",  name: "Planner",  status: "idle", subStatus: "Awaiting input",       tokens: 0 },
-  { id: "research", name: "Research", status: "idle", subStatus: "Awaiting activation",  tokens: 0 },
-  { id: "browser",  name: "Browser",  status: "idle", subStatus: "Awaiting URL",         tokens: 0 },
-  { id: "finance",  name: "Finance",  status: "idle", subStatus: "Awaiting data",        tokens: 0 },
-  { id: "voice",    name: "Voice",    status: "idle", subStatus: "Standby",              tokens: 0 },
+  { id: "planner",  name: "Planner",  status: "idle", subStatus: "Awaiting input",      tokens: 0, output: "" },
+  { id: "research", name: "Research", status: "idle", subStatus: "Awaiting activation", tokens: 0, output: "" },
+  { id: "browser",  name: "Browser",  status: "idle", subStatus: "Awaiting URL",        tokens: 0, output: "" },
+  { id: "finance",  name: "Finance",  status: "idle", subStatus: "Awaiting data",       tokens: 0, output: "" },
+  { id: "voice",    name: "Voice",    status: "idle", subStatus: "Standby",             tokens: 0, output: "" },
 ];
 
 const INITIAL_STATE: DashboardState = {
@@ -77,6 +92,10 @@ const INITIAL_STATE: DashboardState = {
   browserUrl: "about:blank",
   browserLoading: false,
   activeNodeId: null,
+  finalReports: [],
+  reportOpen: false,
+  retryingAgentId: null,
+  simulateFailure: false,
 };
 
 let logSeq = 0;
@@ -91,15 +110,26 @@ function reducer(state: DashboardState, action: Action): DashboardState {
     case "SET_COMMAND":
       return { ...state, command: action.payload };
 
+    case "SET_SIMULATE_FAILURE":
+      return { ...state, simulateFailure: action.payload };
+
     case "START":
-      return { ...INITIAL_STATE, command: state.command, isRunning: true };
+      logSeq = 0;
+      memSeq = 0;
+      return { ...INITIAL_STATE, command: state.command, simulateFailure: state.simulateFailure, isRunning: true };
 
     case "AGENT":
       return {
         ...state,
         agents: state.agents.map((a) =>
           a.id === action.id
-            ? { ...a, status: action.status, subStatus: action.subStatus, tokens: action.tokens ?? a.tokens }
+            ? {
+                ...a,
+                status: action.status,
+                subStatus: action.subStatus,
+                tokens: action.tokens ?? a.tokens,
+                output: action.output ?? a.output,
+              }
             : a
         ),
       };
@@ -135,8 +165,17 @@ function reducer(state: DashboardState, action: Action): DashboardState {
     case "ACTIVE_NODE":
       return { ...state, activeNodeId: action.id };
 
+    case "ADD_REPORT":
+      return { ...state, finalReports: [...state.finalReports, action.report] };
+
+    case "SET_REPORT_OPEN":
+      return { ...state, reportOpen: action.open };
+
+    case "SET_RETRYING":
+      return { ...state, retryingAgentId: action.id };
+
     case "COMPLETE":
-      return { ...state, isRunning: false, isDone: true };
+      return { ...state, isRunning: false, isDone: true, reportOpen: true };
 
     case "RESET":
       return { ...INITIAL_STATE };
@@ -146,111 +185,197 @@ function reducer(state: DashboardState, action: Action): DashboardState {
   }
 }
 
-const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+async function streamAgent(
+  agentType: string,
+  task: string,
+  context: string,
+  onToken: (text: string) => void,
+  signal: AbortSignal
+): Promise<{ output: string; tokens: number }> {
+  const res = await fetch("/api/agent", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ agentType, task, context }),
+    signal,
+  });
+
+  if (!res.ok) throw new Error(`API error ${res.status}`);
+
+  const reader = res.body!.getReader();
+  const decoder = new TextDecoder();
+  let output = "";
+  let tokens = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const lines = decoder.decode(value).split("\n").filter(Boolean);
+    for (const line of lines) {
+      const msg = JSON.parse(line);
+      if (msg.type === "token") {
+        output += msg.text;
+        onToken(msg.text);
+      } else if (msg.type === "done") {
+        output = msg.content;
+        tokens = (msg.usage?.input_tokens ?? 0) + (msg.usage?.output_tokens ?? 0);
+      } else if (msg.type === "error") {
+        throw new Error(msg.error);
+      }
+    }
+  }
+
+  return { output, tokens };
+}
 
 export function useDashboard() {
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
-  const abortRef = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
 
   const execute = useCallback(async () => {
     if (!state.command.trim()) return;
-    abortRef.current = false;
+
+    abortRef.current = new AbortController();
+    const signal = abortRef.current.signal;
+    const willSimulateFailure = state.simulateFailure;
+
     dispatch({ type: "START" });
 
-    const d = (ms: number) => delay(ms);
     const log = (level: LogLevel, message: string) => dispatch({ type: "LOG", level, message });
-    const agent = (id: string, status: AgentStatus, subStatus: string, tokens?: number) =>
-      dispatch({ type: "AGENT", id, status, subStatus, tokens });
+    const agent = (id: string, status: AgentStatus, subStatus: string, tokens?: number, output?: string) =>
+      dispatch({ type: "AGENT", id, status, subStatus, tokens, output });
     const mem = (key: string, value: string) => dispatch({ type: "MEMORY", key, value });
     const metrics = (patch: Partial<MetricState>) => dispatch({ type: "METRICS", patch });
-    const browser = (url: string, loading: boolean) => dispatch({ type: "BROWSER", url, loading });
     const node = (id: string | null) => dispatch({ type: "ACTIVE_NODE", id });
+    const addReport = (agentId: string, agentName: string, output: string) =>
+      dispatch({ type: "ADD_REPORT", report: { agentId, agentName, output } });
 
-    // ── Step 1: Planner activates ──────────────────────────────────────────
-    node("planner");
-    agent("planner", "active", "Parsing query intent...", 120);
-    log("info", `[planner] Received command: "${state.command}"`);
-    log("info", "[planner] Decomposing into sub-tasks...");
-    metrics({ tokens: 120, latency: 42, gpu: 18 });
-    await d(900);
+    let totalTokens = 0;
+    let context = "";
+    let browserSimFailed = false;
 
-    agent("planner", "active", "Routing to Research + Browser", 340);
-    log("info", "[planner] Identified 2 parallel tracks: data + web");
-    mem("query_intent", "NVIDIA stock analysis + AI news summary");
-    metrics({ tokens: 340, latency: 55, gpu: 24 });
-    await d(700);
+    const runAgent = async (
+      id: string,
+      name: string,
+      agentType: string,
+      task: string,
+      browserUrl?: string
+    ) => {
+      node(id);
+      agent(id, "thinking", "Waiting for Claude...");
+      log("info", `[${id}] Connecting to Claude (${agentType})...`);
 
-    // ── Step 2: Research + Browser activate in parallel ───────────────────
-    node("research");
-    agent("planner", "done", "Sub-tasks dispatched", 340);
-    agent("research", "active", "Querying financial APIs...", 80);
-    agent("browser", "active", "Navigating to finance.yahoo.com", 60);
-    log("success", "[planner] Plan dispatched — 2 agents running in parallel");
-    log("info", "[research] Fetching NVDA price history (90d)...");
-    log("info", "[browser] Opening https://finance.yahoo.com/quote/NVDA");
-    browser("https://finance.yahoo.com/quote/NVDA", true);
-    metrics({ tokens: 480, latency: 61, gpu: 38 });
-    await d(1000);
+      if (browserUrl) {
+        dispatch({ type: "BROWSER", url: browserUrl, loading: true });
+      }
 
-    // ── Step 3: Browser navigating ────────────────────────────────────────
-    node("browser");
-    agent("browser", "active", "Extracting DOM content...", 210);
-    browser("https://finance.yahoo.com/quote/NVDA", false);
-    log("info", "[browser] Page loaded — scraping price table");
-    log("info", "[browser] Extracted: NVDA $875.40 (+3.2%) · Vol 48.2M");
-    log("info", "[research] arxiv.org: fetching 'nvidia llm' papers (2024)...");
-    metrics({ tokens: 690, latency: 78, gpu: 51 });
-    mem("nvda_price", "NVDA $875.40 · +3.2% · Vol 48.2M");
-    await d(900);
+      let streamedOutput = "";
+      const t0 = Date.now();
 
-    // ── Step 4: Finance activates ─────────────────────────────────────────
-    node("finance");
-    agent("research", "active", "Summarising 14 papers...", 1420);
-    agent("finance", "active", "Running technical analysis...", 200);
-    log("info", "[research] LLM call — summarising abstracts (14 papers)...");
-    log("info", "[finance] Computing RSI, MACD, Bollinger Bands...");
-    log("warn", "[finance] High volatility detected — flagging for summary");
-    browser("https://arxiv.org/search/?query=nvidia+llm", false);
-    metrics({ tokens: 1620, latency: 88, gpu: 67, retries: 1 });
-    await d(1100);
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          if (attempt > 0) {
+            dispatch({ type: "SET_RETRYING", id });
+            dispatch({ type: "METRICS", patch: { retries: 1 } });
+            log("warn", `[${id}] Retrying after error...`);
+            await new Promise((r) => setTimeout(r, 800));
+          }
 
-    // ── Step 5: Research done, Finance wrapping ───────────────────────────
-    node("research");
-    agent("research", "done", "14 papers summarised", 2180);
-    log("success", "[research] Summary complete — 14 papers indexed");
-    mem("research_context", "Key themes: LLM reasoning, inference efficiency, CUDA kernels");
-    metrics({ tokens: 2180, latency: 94, gpu: 72 });
-    await d(700);
+          // Simulated failure for browser agent on first attempt
+          if (willSimulateFailure && id === "browser" && attempt === 0 && !browserSimFailed) {
+            browserSimFailed = true;
+            agent(id, "active", "Connecting to target...");
+            await new Promise((r) => setTimeout(r, 1200));
+            log("warn", "[browser] ⚠ Connection timeout — switching to backup mirror");
+            throw new Error("Simulated: connection timeout");
+          }
 
-    // ── Step 6: Browser done, Finance done ───────────────────────────────
-    agent("browser", "done", "3 pages scraped", 540);
-    agent("finance", "done", "Analysis complete", 880);
-    log("success", "[browser] Scraping complete — 3 sources indexed");
-    log("success", "[finance] Technical analysis complete — signal: BUY");
-    mem("finance_signal", "RSI: 58.4 · MACD: bullish crossover · Signal: BUY");
-    metrics({ tokens: 2720, latency: 91, gpu: 58 });
-    await d(600);
+          // Switch to active once first token arrives
+          let firstToken = true;
+          const { output, tokens } = await streamAgent(
+            agentType,
+            task,
+            context,
+            (text) => {
+              if (firstToken) {
+                firstToken = false;
+                agent(id, "active", "Streaming response...");
+                if (browserUrl) dispatch({ type: "BROWSER", loading: false });
+              }
+              streamedOutput += text;
+              agent(id, "active", "Streaming response...", undefined, streamedOutput);
+            },
+            signal
+          );
 
-    // ── Step 7: Voice agent narrates, Summary builds ──────────────────────
-    node("voice");
-    agent("voice", "active", "Generating audio summary...", 380);
-    log("info", "[voice] Synthesising narration from research context...");
-    log("info", "[summary] Aggregating all agent outputs...");
-    metrics({ tokens: 3100, latency: 86, gpu: 44 });
-    await d(900);
+          totalTokens += tokens || Math.floor(streamedOutput.length / 3.5);
+          const latency = Date.now() - t0;
 
-    // ── Step 8: All done ──────────────────────────────────────────────────
-    agent("voice", "done", "Narration ready", 380);
-    log("success", "[summary] Final report generated successfully");
-    log("success", "[pipeline] All 5 agents completed · Total: 3,100 tokens");
-    mem("final_summary", "NVDA: strong buy signal · AI sector momentum accelerating");
-    metrics({ tokens: 3100, latency: 82, gpu: 31, retries: 1 });
+          agent(id, "done", "Complete", totalTokens, output);
+          addReport(id, name, output);
+          log("success", `[${id}] Done — ${tokens} tokens · ${latency}ms`);
+          metrics({
+            tokens: totalTokens,
+            latency: Math.round(latency),
+            gpu: Math.min(30 + totalTokens / 80, 95),
+          });
+
+          context += `\n\n[${name}]: ${output}`;
+          dispatch({ type: "SET_RETRYING", id: null });
+          return output;
+        } catch (err) {
+          if (signal.aborted) return "";
+          if (attempt === 1) {
+            agent(id, "error", "Failed after retry");
+            log("error", `[${id}] Error: ${err instanceof Error ? err.message : "Unknown"}`);
+            addReport(id, name, `[Error] Agent failed. Fallback: Could not complete ${agentType} analysis.`);
+            dispatch({ type: "SET_RETRYING", id: null });
+            return "";
+          }
+        }
+      }
+      return "";
+    };
+
+    // ── Pipeline ────────────────────────────────────────────────────────────
+    log("info", `[pipeline] Starting — command: "${state.command}"`);
+
+    await runAgent("planner", "Planner", "planner", state.command);
+    if (signal.aborted) return;
+
+    mem("query_intent", state.command.slice(0, 80));
+    metrics({ gpu: 22 });
+
+    // Research + Browser in parallel
+    await Promise.all([
+      runAgent("research", "Research", "research", state.command, undefined),
+      runAgent("browser", "Browser", "browser", state.command, "https://finance.yahoo.com/quote/NVDA"),
+    ]);
+    if (signal.aborted) return;
+
+    mem("parallel_complete", "Research + Browser agents finished");
+
+    await runAgent("finance", "Finance", "finance", state.command);
+    if (signal.aborted) return;
+
+    mem("finance_signal", "Technical analysis complete");
+
+    await runAgent("voice", "Voice", "voice", state.command);
+    if (signal.aborted) return;
+
+    // Summary agent compiles full report
+    log("info", "[summary] Generating final report...");
+    const summaryOutput = await runAgent("summary", "Summary", "summary", state.command);
+    if (signal.aborted) return;
+
+    mem("final_summary", summaryOutput.slice(0, 120));
+
+    log("success", "[pipeline] All agents complete");
     node(null);
     dispatch({ type: "COMPLETE" });
-  }, [state.command]);
+  }, [state.command, state.simulateFailure]);
 
   const reset = useCallback(() => {
-    abortRef.current = true;
+    abortRef.current?.abort();
     dispatch({ type: "RESET" });
   }, []);
 

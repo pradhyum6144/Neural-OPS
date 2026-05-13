@@ -1,36 +1,129 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Neural OPS
 
-## Getting Started
+AI agent orchestration platform — multi-agent pipeline with real-time Claude streaming, workflow graph, browser replay, and voice narration.
 
-First, run the development server:
+> **Demo GIF placeholder** — record with Loom or `npx @screencapture/cli` after running locally
+
+## Stack
+
+- **Next.js 14** App Router · TypeScript · Tailwind CSS
+- **Anthropic SDK** — `claude-sonnet-4-6` streaming via SSE
+- **ReactFlow** — live workflow graph
+- **Framer Motion** — 60fps animations throughout
+- **Web Speech API** — voice narration of final summary
+
+## Setup
+
+### 1. Clone & install
+
+```bash
+git clone https://github.com/your-username/neural-ops.git
+cd neural-ops
+npm install
+```
+
+### 2. Configure environment
+
+```bash
+cp .env.local .env.local.bak   # backup
+```
+
+Edit `.env.local`:
+
+```
+ANTHROPIC_API_KEY=sk-ant-...        # required — get from console.anthropic.com
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your-secret-here
+```
+
+### 3. Run
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000/dashboard](http://localhost:3000/dashboard).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Keyboard Shortcuts
 
-## Learn More
+| Shortcut | Action |
+|----------|--------|
+| `⌘K` | Focus command input |
+| `⌘↵` | Execute pipeline |
+| `Esc` | Stop execution / close modal |
+| `⌘E` | Export report as `.md` |
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Agent Pipeline
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+User Query
+  └── Planner          decomposes intent into sub-tasks
+       ├── Research    synthesizes information           (parallel)
+       ├── Browser     web navigation + extraction       (parallel)
+       └── Finance     technical + quantitative analysis
+            ├── Voice   spoken narration via Web Speech API
+            └── Summary structured JSON final report
+```
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Features
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Feature | Details |
+|---------|---------|
+| **Streaming** | Token-by-token Claude output in agent cards |
+| **Thinking shimmer** | Purple gradient sweep while waiting for first token |
+| **Workflow graph** | ReactFlow with animated edges during active steps |
+| **Voice narration** | Web Speech API reads summary aloud; animated waveform |
+| **Run history** | Last 5 runs in sidebar; click to replay |
+| **Simulate failure** | Toggle forces browser agent to fail once then retry |
+| **Export** | Full pipeline output as formatted Markdown |
+| **Mobile** | Responsive layout with hamburger drawer |
+
+---
+
+## Deploy to Vercel
+
+```bash
+npm i -g vercel
+
+# Add your API key as a Vercel secret
+vercel env add ANTHROPIC_API_KEY
+
+vercel deploy --prod
+```
+
+Or one-click:
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/your-username/neural-ops)
+
+---
+
+## Project Structure
+
+```
+app/
+  page.tsx                       Landing page
+  dashboard/page.tsx             Command center
+  api/agent/route.ts             Streaming Claude API route
+components/dashboard/
+  agent-fleet.tsx                Agent status cards + waveform
+  browser-replay.tsx             Browser chrome simulation
+  command-input.tsx              Terminal input + failure toggle
+  final-report.tsx               Results modal with export
+  infra-heatmap.tsx              Metrics grid
+  live-log.tsx                   Streaming log panel
+  memory-nodes.tsx               KV memory store
+  sidebar.tsx                    Nav + run history panel
+  topbar.tsx                     Status + mobile menu
+  waveform.tsx                   Animated audio bars
+  workflow-graph.tsx             ReactFlow graph
+hooks/
+  use-dashboard.ts               State machine (useReducer)
+  use-speech.ts                  Web Speech API wrapper
+  use-workflow-history.ts        localStorage run history
+```

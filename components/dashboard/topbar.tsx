@@ -1,14 +1,15 @@
 "use client";
 
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Menu } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface TopbarProps {
   isRunning: boolean;
   isDone: boolean;
+  onMenuOpen?: () => void;
 }
 
-export function Topbar({ isRunning, isDone }: TopbarProps) {
+export function Topbar({ isRunning, isDone, onMenuOpen }: TopbarProps) {
   const statusLabel = isRunning
     ? "PIPELINE RUNNING"
     : isDone
@@ -24,25 +25,37 @@ export function Topbar({ isRunning, isDone }: TopbarProps) {
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between
                        border-b border-[rgba(99,102,241,0.1)] bg-[rgba(10,10,15,0.9)]
-                       backdrop-blur-xl px-6">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm">
-        <span className="text-[#4a4a6a]">Neural OPS</span>
-        <ChevronRight size={13} className="text-[#2a2a3a]" />
-        <span className="text-[#e0e0ff] font-medium">Command Center</span>
+                       backdrop-blur-xl px-4 md:px-6">
+      <div className="flex items-center gap-3">
+        {/* Hamburger — mobile only */}
+        <button
+          onClick={onMenuOpen}
+          className="md:hidden flex h-8 w-8 items-center justify-center rounded-lg
+                     text-[#4a4a6a] hover:text-[#9090b0] hover:bg-[rgba(99,102,241,0.08)]
+                     transition-all"
+        >
+          <Menu size={18} />
+        </button>
+
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-[#4a4a6a] hidden sm:inline">Neural OPS</span>
+          <ChevronRight size={13} className="text-[#2a2a3a] hidden sm:inline" />
+          <span className="text-[#e0e0ff] font-medium">Command Center</span>
+        </div>
       </div>
 
       {/* Status + avatar */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 md:gap-4">
         <motion.div
           key={statusLabel}
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center gap-2 rounded-full border border-[rgba(99,102,241,0.15)]
-                     bg-[rgba(99,102,241,0.06)] px-3 py-1.5"
+                     bg-[rgba(99,102,241,0.06)] px-2.5 py-1.5 md:px-3"
         >
           <span className={`h-1.5 w-1.5 rounded-full ${dotClass}`} />
-          <span className="text-xs font-medium tracking-wide"
+          <span className="hidden sm:inline text-xs font-medium tracking-wide"
                 style={{ color: isRunning ? "#f59e0b" : "#22d3a5" }}>
             {statusLabel}
           </span>
