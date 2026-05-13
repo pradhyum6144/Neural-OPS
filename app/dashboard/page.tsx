@@ -24,6 +24,7 @@ import { MemoryNodes } from "@/components/dashboard/memory-nodes";
 import { FinalReport } from "@/components/dashboard/final-report";
 import { RouterBadge } from "@/components/dashboard/RouterBadge";
 import { DeployModal } from "@/components/dashboard/DeployModal";
+import { ContentExportBar } from "@/components/dashboard/ContentExportBar";
 import { GridPattern } from "@/components/ui/grid-pattern";
 import type { AgentReport } from "@/hooks/use-dashboard";
 
@@ -318,6 +319,20 @@ export default function DashboardPage() {
                     Deploy this pipeline
                   </button>
                 </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Content export bar — appears only when pipeline is done */}
+            <AnimatePresence>
+              {state.isDone && (
+                <ContentExportBar
+                  reports={state.finalReports}
+                  agents={state.agents}
+                  command={state.command}
+                  metrics={state.metrics}
+                  costThisRun={state.costThisRun}
+                  modelUsed={state.modelUsed}
+                />
               )}
             </AnimatePresence>
 
