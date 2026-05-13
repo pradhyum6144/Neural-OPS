@@ -3,10 +3,13 @@
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useCallback, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import { useDashboard } from "@/hooks/use-dashboard";
 import { useSpeech } from "@/hooks/use-speech";
 import { useWorkflowHistory } from "@/hooks/use-workflow-history";
 import { useSavings } from "@/hooks/use-savings";
+import { useCredits } from "@/hooks/use-credits";
+import { useRunHistory } from "@/hooks/use-run-history";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
 import { selectModel, MODEL_CONFIGS } from "@/lib/smartRouter";
 import type { ModelKey } from "@/lib/smartRouter";
@@ -99,6 +102,8 @@ export default function DashboardPage() {
   const { speak, replay, isSpeaking } = useSpeech();
   const { history, addEntry, clearHistory } = useWorkflowHistory();
   const { savedToday, addRun } = useSavings();
+  const credits = useCredits();
+  const runHistory = useRunHistory();
   const inputRef = useRef<HTMLInputElement>(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [modelOverride, setModelOverride] = useState<ModelKey | null>(null);
@@ -147,10 +152,24 @@ export default function DashboardPage() {
 
         dispatch({ type: "SET_RUN_COST", costINR, modelUsed: MODEL_CONFIGS[activeModel].label });
         addRun(costINR, savingsINR);
+        credits.deduct(costINR);
+        runHistory.addRecord({
+          command: state.command,
+          model: MODEL_CONFIGS[activeModel].label,
+          tokens: state.metrics.tokens,
+          costINR,
+          savedINR: savingsINR,
+        });
+
+        const newBalance = Math.max(0, Math.round((credits.balance - costINR) * 100) / 100);
+        toast.success(`Run cost ₹${costINR.toFixed(2)}. Balance: ₹${newBalance.toFixed(2)}`, {
+          duration: 4000,
+        });
       }
     }
     prevDoneRef.current = state.isDone;
-  }, [state.isDone, state.command, state.metrics.tokens, state.agents, addEntry, routerResult, modelOverride, dispatch, addRun]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.isDone, state.command, state.metrics.tokens, state.agents, addEntry, routerResult, modelOverride, dispatch, addRun, credits.deduct, runHistory.addRecord]);
 
   // Export handler
   const handleExport = useCallback(() => {
@@ -227,6 +246,7 @@ export default function DashboardPage() {
           onMenuOpen={() => setMobileNavOpen(true)}
           onSpeakSummary={() => replay()}
           isSpeaking={isSpeaking}
+          creditsBalance={credits.balance}
         />
 
         <main className="relative flex-1 overflow-y-auto">

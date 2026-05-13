@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { LayoutDashboard, Settings, Clock, X, RotateCcw, Trash2, LogOut, Bell, Plug, Rocket } from "lucide-react";
+import { LayoutDashboard, Settings, Clock, X, RotateCcw, Trash2, LogOut, Bell, Plug, Rocket, Wallet } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
@@ -13,6 +13,7 @@ const NAV = [
   { icon: LayoutDashboard, label: "Dashboard",       href: "/dashboard" },
   { icon: Rocket,          label: "Deployments",     href: "/deployments" },
   { icon: Plug,            label: "Connections",     href: "/connections" },
+  { icon: Wallet,          label: "Credits",         href: "/credits" },
   { icon: Bell,            label: "Alert Settings",  href: "/settings/alerts" },
 ];
 

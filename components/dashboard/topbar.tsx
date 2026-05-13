@@ -1,6 +1,7 @@
 "use client";
 
-import { ChevronRight, Menu, Volume2 } from "lucide-react";
+import Link from "next/link";
+import { ChevronRight, Menu, Volume2, Wallet } from "lucide-react";
 import { motion } from "framer-motion";
 
 // CSS-animated waveform for speaking state (3 bars, no RAF needed)
@@ -36,6 +37,7 @@ interface TopbarProps {
   onMenuOpen?: () => void;
   onSpeakSummary?: () => void;
   isSpeaking?: boolean;
+  creditsBalance?: number;
 }
 
 export function Topbar({
@@ -47,6 +49,7 @@ export function Topbar({
   onMenuOpen,
   onSpeakSummary,
   isSpeaking = false,
+  creditsBalance,
 }: TopbarProps) {
   const statusLabel = isRunning
     ? "PIPELINE RUNNING"
@@ -143,6 +146,27 @@ export function Topbar({
                 </>
               )}
             </motion.button>
+          )}
+
+          {/* Credits indicator */}
+          {creditsBalance !== undefined && (
+            <Link
+              href="/credits"
+              className="flex items-center gap-1.5 rounded-full border border-[rgba(34,211,165,0.2)]
+                         bg-[rgba(34,211,165,0.06)] px-2.5 py-1.5 transition-all duration-150
+                         hover:border-[rgba(34,211,165,0.4)] hover:bg-[rgba(34,211,165,0.1)]"
+              title="Credits & Billing"
+            >
+              <Wallet size={11} className="text-[#22d3a5]" />
+              <motion.span
+                key={creditsBalance.toFixed(2)}
+                initial={{ opacity: 0, y: -3 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="font-mono text-[11px] font-semibold text-[#22d3a5]"
+              >
+                ₹{creditsBalance.toFixed(2)}
+              </motion.span>
+            </Link>
           )}
 
           {/* Avatar */}

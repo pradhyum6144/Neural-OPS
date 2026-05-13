@@ -105,6 +105,22 @@ begin
 end;
 $$;
 
+-- 6. credits_transactions
+create table if not exists public.credits_transactions (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     text not null,
+  amount_inr  numeric(10,4) not null,
+  type        text not null check (type in ('add', 'deduct', 'topup')),
+  run_id      text,
+  model_used  text,
+  tokens      integer,
+  created_at  timestamptz not null default now()
+);
+
+create index if not exists credits_transactions_user_id_idx  on public.credits_transactions (user_id);
+create index if not exists credits_transactions_created_at_idx on public.credits_transactions (created_at desc);
+alter table public.credits_transactions enable row level security;
+
 -- ── Smart Router cost columns (migration) ─────────────────────────────────
 alter table public.token_usage
   add column if not exists cost_inr  numeric not null default 0,
