@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { LayoutDashboard, Settings, Clock, X, RotateCcw, Trash2, LogOut, Bell, Plug, Rocket, Wallet } from "lucide-react";
+import { LayoutDashboard, Settings, Clock, X, RotateCcw, Trash2, LogOut, Bell, Plug, Rocket, Wallet, Trophy } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
@@ -11,6 +11,7 @@ import type { HistoryEntry } from "@/hooks/use-workflow-history";
 
 const NAV = [
   { icon: LayoutDashboard, label: "Dashboard",       href: "/dashboard" },
+  { icon: Trophy,          label: "Benchmark",       href: "/benchmark" },
   { icon: Rocket,          label: "Deployments",     href: "/deployments" },
   { icon: Plug,            label: "Connections",     href: "/connections" },
   { icon: Wallet,          label: "Credits",         href: "/credits" },
