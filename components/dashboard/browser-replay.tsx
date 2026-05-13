@@ -11,9 +11,9 @@ interface BrowserReplayProps {
 function SkeletonLine({ w, delay = 0 }: { w: string; delay?: number }) {
   return (
     <motion.div
-      className="h-2.5 rounded-full bg-[rgba(99,102,241,0.08)]"
+      className="h-2.5 rounded-full bg-[rgba(99,102,241,0.18)]"
       style={{ width: w }}
-      animate={{ opacity: [0.4, 0.8, 0.4] }}
+      animate={{ opacity: [0.5, 1, 0.5] }}
       transition={{ duration: 1.6, delay, repeat: Infinity, ease: "easeInOut" }}
     />
   );
@@ -22,9 +22,9 @@ function SkeletonLine({ w, delay = 0 }: { w: string; delay?: number }) {
 function SkeletonBlock({ h, delay = 0 }: { h: number; delay?: number }) {
   return (
     <motion.div
-      className="w-full rounded-lg bg-[rgba(99,102,241,0.05)]"
+      className="w-full rounded-lg bg-[rgba(99,102,241,0.1)] border border-[rgba(99,102,241,0.08)]"
       style={{ height: h }}
-      animate={{ opacity: [0.3, 0.6, 0.3] }}
+      animate={{ opacity: [0.4, 0.8, 0.4] }}
       transition={{ duration: 2, delay, repeat: Infinity, ease: "easeInOut" }}
     />
   );
@@ -79,7 +79,7 @@ export function BrowserReplay({ url, loading }: BrowserReplayProps) {
           </div>
 
           {/* Page content */}
-          <div className="relative p-3 min-h-[140px]">
+          <div className="relative p-3 min-h-[180px]">
             {isBlank ? (
               <div className="flex items-center justify-center h-[120px]">
                 <p className="text-[10px] font-mono text-[#2a2a4a]">No page loaded</p>

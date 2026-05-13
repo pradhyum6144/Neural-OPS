@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useCallback } from "react";
+import { useMemo } from "react";
 import ReactFlow, {
+  ReactFlowProvider,
   Background,
   BackgroundVariant,
   Handle,
@@ -162,34 +163,36 @@ export function WorkflowGraph({ agents, activeNodeId }: { agents: AgentState[]; 
     }), [statusMap]);
 
   return (
-    <div className="nos-panel flex flex-col overflow-hidden" style={{ minHeight: 520 }}>
+    <div className="nos-panel flex flex-col overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b border-[rgba(99,102,241,0.08)]">
         <span className="nos-label">Workflow Graph</span>
         <span className="text-[10px] font-mono text-[#4a4a6a]">ReactFlow · live</span>
       </div>
 
-      <div className="flex-1" style={{ height: 480 }}>
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          nodeTypes={NODE_TYPES}
-          fitView
-          fitViewOptions={{ padding: 0.3 }}
-          proOptions={{ hideAttribution: true }}
-          nodesDraggable={false}
-          nodesConnectable={false}
-          elementsSelectable={false}
-          panOnDrag={false}
-          zoomOnScroll={false}
-          style={{ background: "transparent" }}
-        >
-          <Background
-            variant={BackgroundVariant.Dots}
-            gap={20}
-            size={1}
-            color="rgba(99,102,241,0.12)"
-          />
-        </ReactFlow>
+      <div style={{ width: "100%", height: 480 }}>
+        <ReactFlowProvider>
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={NODE_TYPES}
+            fitView
+            fitViewOptions={{ padding: 0.25 }}
+            proOptions={{ hideAttribution: true }}
+            nodesDraggable={false}
+            nodesConnectable={false}
+            elementsSelectable={false}
+            panOnDrag={false}
+            zoomOnScroll={false}
+            style={{ background: "transparent", width: "100%", height: "100%" }}
+          >
+            <Background
+              variant={BackgroundVariant.Dots}
+              gap={20}
+              size={1}
+              color="rgba(99,102,241,0.12)"
+            />
+          </ReactFlow>
+        </ReactFlowProvider>
       </div>
     </div>
   );

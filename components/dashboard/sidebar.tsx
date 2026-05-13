@@ -1,18 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { LayoutDashboard, GitBranch, Cpu, Database, Settings, Clock, X, RotateCcw, Trash2 } from "lucide-react";
+import { LayoutDashboard, Settings, Clock, X, RotateCcw, Trash2, LogOut, Bell } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
 import { motion, AnimatePresence } from "framer-motion";
+import { signOut } from "next-auth/react";
 import type { HistoryEntry } from "@/hooks/use-workflow-history";
 
 const NAV = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
-  { icon: GitBranch,       label: "Workflows",  href: "/dashboard/workflows" },
-  { icon: Cpu,             label: "Agents",     href: "/dashboard/agents" },
-  { icon: Database,        label: "Memory",     href: "/dashboard/memory" },
+  { icon: Bell, label: "Alert Settings", href: "/settings/alerts" },
 ];
 
 interface SidebarProps {
@@ -110,19 +109,18 @@ export function Sidebar({
 }: SidebarProps) {
   const path = usePathname();
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const sidebarContent = (
     <>
       {/* Logo */}
-      <Link
-        href="/"
+      <div
         className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl
                    bg-[#6366f1] text-white text-lg font-bold
-                   shadow-[0_0_16px_rgba(99,102,241,0.4)]
-                   hover:shadow-[0_0_24px_rgba(99,102,241,0.6)] transition-shadow"
+                   shadow-[0_0_16px_rgba(99,102,241,0.4)]"
       >
         ⬡
-      </Link>
+      </div>
 
       {/* Nav */}
       <nav className="flex flex-col items-center gap-1 flex-1">
@@ -172,16 +170,51 @@ export function Sidebar({
         </button>
       </nav>
 
-      {/* Bottom: settings */}
-      <Link
-        href="/dashboard/settings"
-        title="Settings"
-        className="flex h-10 w-10 items-center justify-center rounded-lg
-                   text-[#4a4a6a] hover:text-[#9090b0] hover:bg-[rgba(99,102,241,0.08)]
-                   transition-all duration-150"
-      >
-        <Settings size={18} />
-      </Link>
+      {/* Bottom: settings + logout */}
+      <div className="relative">
+        <button
+          title="Settings"
+          onClick={() => setSettingsOpen((o) => !o)}
+          className={clsx(
+            "flex h-10 w-10 items-center justify-center rounded-lg transition-all duration-150",
+            settingsOpen
+              ? "bg-[rgba(99,102,241,0.2)] text-[#6366f1]"
+              : "text-[#4a4a6a] hover:text-[#9090b0] hover:bg-[rgba(99,102,241,0.08)]"
+          )}
+        >
+          <Settings size={18} />
+        </button>
+
+        <AnimatePresence>
+          {settingsOpen && (
+            <motion.div
+              initial={{ opacity: 0, x: 8, scale: 0.95 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 8, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+              className="absolute bottom-0 left-12 w-44 rounded-xl border border-[rgba(99,102,241,0.2)]
+                         bg-[rgba(12,12,22,0.98)] backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)]
+                         overflow-hidden z-50"
+            >
+              <div className="px-3 py-2.5 border-b border-[rgba(99,102,241,0.08)]">
+                <p className="text-[10px] font-semibold text-[#4a4a6a] uppercase tracking-wider">Account</p>
+              </div>
+              <button
+                onClick={async () => {
+                  await signOut({ redirect: false });
+                  window.location.href = "/";
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5
+                           text-[#f43f5e] hover:bg-[rgba(244,63,94,0.08)]
+                           transition-colors duration-150 text-sm font-medium"
+              >
+                <LogOut size={14} />
+                Sign out
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </>
   );
 
@@ -229,8 +262,8 @@ export function Sidebar({
                          backdrop-blur-xl py-4 px-3 gap-2 md:hidden"
             >
               <div className="flex items-center justify-between mb-2">
-                <Link href="/" className="flex h-10 w-10 items-center justify-center rounded-xl
-                                           bg-[#6366f1] text-white text-lg font-bold">⬡</Link>
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl
+                                bg-[#6366f1] text-white text-lg font-bold">⬡</div>
                 <button onClick={onMobileClose} className="text-[#4a4a6a] hover:text-[#9090b0]">
                   <X size={18} />
                 </button>
