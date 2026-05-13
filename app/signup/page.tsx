@@ -6,7 +6,6 @@ import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { FloatingOrbs } from "@/components/auth/floating-orbs";
 import { InputField } from "@/components/auth/input-field";
-import { GoogleButton } from "@/components/auth/google-button";
 
 interface FormErrors {
   name?: string;
@@ -115,16 +114,6 @@ export default function SignupPage() {
                 Start building with Neural<span className="text-[#6366f1]">OPS</span> for free
               </p>
             </div>
-          </div>
-
-          {/* Google */}
-          <GoogleButton />
-
-          {/* Divider */}
-          <div className="flex items-center gap-3 my-5">
-            <div className="h-px flex-1 bg-[rgba(99,102,241,0.12)]" />
-            <span className="text-xs text-[#4a4a6a] font-medium">or continue with email</span>
-            <div className="h-px flex-1 bg-[rgba(99,102,241,0.12)]" />
           </div>
 
           {/* Form */}

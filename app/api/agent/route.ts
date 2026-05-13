@@ -1,7 +1,7 @@
-import Anthropic from "@anthropic-ai/sdk";
+import Groq from "groq-sdk";
 import { NextRequest } from "next/server";
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 const SYSTEM_PROMPTS: Record<string, string> = {
   planner: `You are the Planner agent in a multi-agent AI orchestration system.
@@ -36,7 +36,7 @@ Output ONLY valid JSON, nothing else.`,
 };
 
 export async function POST(req: NextRequest) {
-  const { agentType, task, context, previousResults } = await req.json();
+  const { agentType, task, context } = await req.json();
 
   const systemPrompt = SYSTEM_PROMPTS[agentType] ?? SYSTEM_PROMPTS.research;
 
@@ -49,24 +49,31 @@ export async function POST(req: NextRequest) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        const claudeStream = anthropic.messages.stream({
-          model: "claude-sonnet-4-6",
+        const groqStream = await groq.chat.completions.create({
+          model: "llama-3.1-8b-instant",
           max_tokens: 800,
-          system: systemPrompt,
-          messages: [{ role: "user", content: userMessage }],
+          stream: true,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userMessage },
+          ],
         });
 
-        claudeStream.on("text", (text) => {
-          const chunk = JSON.stringify({ type: "token", text }) + "\n";
-          controller.enqueue(encoder.encode(chunk));
-        });
+        let fullContent = "";
 
-        const finalMsg = await claudeStream.finalMessage();
+        for await (const chunk of groqStream) {
+          const text = chunk.choices[0]?.delta?.content ?? "";
+          if (text) {
+            fullContent += text;
+            const tokenChunk = JSON.stringify({ type: "token", text }) + "\n";
+            controller.enqueue(encoder.encode(tokenChunk));
+          }
+        }
 
         const doneChunk = JSON.stringify({
           type: "done",
-          content: finalMsg.content[0].type === "text" ? finalMsg.content[0].text : "",
-          usage: finalMsg.usage,
+          content: fullContent,
+          usage: { input_tokens: 0, output_tokens: fullContent.length },
         }) + "\n";
         controller.enqueue(encoder.encode(doneChunk));
         controller.close();
