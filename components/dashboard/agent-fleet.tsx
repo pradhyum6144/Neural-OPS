@@ -195,14 +195,19 @@ export function AgentFleet({
   onReplaySpeech?: () => void;
 }) {
   const activeCount = agents.filter((a) => a.status === "active" || a.status === "thinking").length;
+  const doneCount = agents.filter((a) => a.status === "done").length;
+  const errorCount = agents.filter((a) => a.status === "error").length;
 
   return (
     <div className="nos-panel flex flex-col overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b border-[rgba(99,102,241,0.08)]">
         <span className="nos-label">Agent Fleet</span>
-        <span className="text-[10px] font-mono text-[#4a4a6a]">
-          {activeCount} active
-        </span>
+        <div className="flex items-center gap-2 font-mono text-[10px]">
+          {activeCount > 0 && <span className="text-[#6366f1]">{activeCount} active</span>}
+          {doneCount > 0 && <span className="text-[#22d3a5]">{doneCount}/{agents.length} done</span>}
+          {errorCount > 0 && <span className="text-[#f43f5e]">{errorCount} failed</span>}
+          {activeCount === 0 && doneCount === 0 && <span className="text-[#4a4a6a]">idle</span>}
+        </div>
       </div>
       <div className="flex flex-col gap-2 p-3 overflow-y-auto">
         {agents.map((a, i) => (
