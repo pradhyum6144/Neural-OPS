@@ -12,6 +12,7 @@ export interface AgentState {
   subStatus: string;
   tokens: number;
   output: string;
+  durationMs?: number;
 }
 
 export interface LogEntry {
@@ -61,7 +62,7 @@ type Action =
   | { type: "SET_COMMAND"; payload: string }
   | { type: "SET_SIMULATE_FAILURE"; payload: boolean }
   | { type: "START" }
-  | { type: "AGENT"; id: string; status: AgentStatus; subStatus: string; tokens?: number; output?: string }
+  | { type: "AGENT"; id: string; status: AgentStatus; subStatus: string; tokens?: number; output?: string; durationMs?: number }
   | { type: "LOG"; level: LogLevel; message: string }
   | { type: "MEMORY"; key: string; value: string }
   | { type: "METRICS"; patch: Partial<MetricState> }
@@ -74,11 +75,11 @@ type Action =
   | { type: "RESET" };
 
 const INITIAL_AGENTS: AgentState[] = [
-  { id: "planner",  name: "Planner",  status: "idle", subStatus: "Awaiting input",      tokens: 0, output: "" },
-  { id: "research", name: "Research", status: "idle", subStatus: "Awaiting activation", tokens: 0, output: "" },
-  { id: "browser",  name: "Browser",  status: "idle", subStatus: "Awaiting URL",        tokens: 0, output: "" },
-  { id: "finance",  name: "Finance",  status: "idle", subStatus: "Awaiting data",       tokens: 0, output: "" },
-  { id: "voice",    name: "Voice",    status: "idle", subStatus: "Standby",             tokens: 0, output: "" },
+  { id: "planner",  name: "Planner",  status: "idle", subStatus: "Awaiting input",      tokens: 0, output: "", durationMs: undefined },
+  { id: "research", name: "Research", status: "idle", subStatus: "Awaiting activation", tokens: 0, output: "", durationMs: undefined },
+  { id: "browser",  name: "Browser",  status: "idle", subStatus: "Awaiting URL",        tokens: 0, output: "", durationMs: undefined },
+  { id: "finance",  name: "Finance",  status: "idle", subStatus: "Awaiting data",       tokens: 0, output: "", durationMs: undefined },
+  { id: "voice",    name: "Voice",    status: "idle", subStatus: "Standby",             tokens: 0, output: "", durationMs: undefined },
 ];
 
 const INITIAL_STATE: DashboardState = {
@@ -129,6 +130,7 @@ function reducer(state: DashboardState, action: Action): DashboardState {
                 subStatus: action.subStatus,
                 tokens: action.tokens ?? a.tokens,
                 output: action.output ?? a.output,
+                durationMs: action.durationMs ?? a.durationMs,
               }
             : a
         ),
@@ -241,8 +243,8 @@ export function useDashboard() {
     dispatch({ type: "START" });
 
     const log = (level: LogLevel, message: string) => dispatch({ type: "LOG", level, message });
-    const agent = (id: string, status: AgentStatus, subStatus: string, tokens?: number, output?: string) =>
-      dispatch({ type: "AGENT", id, status, subStatus, tokens, output });
+    const agent = (id: string, status: AgentStatus, subStatus: string, tokens?: number, output?: string, durationMs?: number) =>
+      dispatch({ type: "AGENT", id, status, subStatus, tokens, output, durationMs });
     const mem = (key: string, value: string) => dispatch({ type: "MEMORY", key, value });
     const metrics = (patch: Partial<MetricState>) => dispatch({ type: "METRICS", patch });
     const node = (id: string | null) => dispatch({ type: "ACTIVE_NODE", id });
@@ -310,7 +312,7 @@ export function useDashboard() {
           totalTokens += tokens || Math.floor(streamedOutput.length / 3.5);
           const latency = Date.now() - t0;
 
-          agent(id, "done", "Complete", totalTokens, output);
+          agent(id, "done", "Complete", totalTokens, output, Date.now() - t0);
           addReport(id, name, output);
           log("success", `[${id}] Done — ${tokens} tokens · ${latency}ms`);
           metrics({
@@ -370,6 +372,24 @@ export function useDashboard() {
     mem("final_summary", summaryOutput.slice(0, 120));
 
     log("success", "[pipeline] All agents complete");
+
+    // Save token usage to Supabase (fire-and-forget — never blocks the UI)
+    const agentBreakdown = Object.fromEntries(
+      state.agents.map((a) => [
+        a.id,
+        { name: a.name, tokens: a.tokens, status: a.status },
+      ])
+    );
+    fetch("/api/orchestrate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: "anonymous",
+        command: state.command,
+        agentBreakdown,
+      }),
+    }).catch(() => {});
+
     node(null);
     dispatch({ type: "COMPLETE" });
   }, [state.command, state.simulateFailure]);

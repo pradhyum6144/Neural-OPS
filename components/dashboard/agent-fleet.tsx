@@ -126,7 +126,7 @@ function AgentCard({
           {isThinking && <ThinkingShimmer />}
         </div>
 
-        {/* Token counter */}
+        {/* Token counter + duration */}
         <div className="flex-shrink-0 text-right">
           <AnimatePresence mode="wait">
             <motion.span
@@ -139,6 +139,13 @@ function AgentCard({
             </motion.span>
           </AnimatePresence>
           <span className="text-[9px] text-[#3a3a5a]">tkns</span>
+          {agent.durationMs !== undefined && agent.status === "done" && (
+            <span className="block font-mono text-[9px] text-[#3a3a5a] mt-0.5">
+              {agent.durationMs < 1000
+                ? `${agent.durationMs}ms`
+                : `${(agent.durationMs / 1000).toFixed(1)}s`}
+            </span>
+          )}
         </div>
 
         {/* Status dot */}
