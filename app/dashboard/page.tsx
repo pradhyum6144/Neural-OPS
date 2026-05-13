@@ -210,6 +210,7 @@ export default function DashboardPage() {
                 onChange={(v) => dispatch({ type: "SET_COMMAND", payload: v })}
                 onExecute={execute}
                 onReset={reset}
+                onStop={reset}
                 onExport={handleExport}
                 isRunning={state.isRunning}
                 isDone={state.isDone}

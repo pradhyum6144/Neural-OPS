@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import { motion } from "framer-motion";
-import { Play, RotateCcw, Download, AlertTriangle } from "lucide-react";
+import { Play, RotateCcw, Download, AlertTriangle, Square } from "lucide-react";
 import { clsx } from "clsx";
 
 interface CommandInputProps {
@@ -10,6 +10,7 @@ interface CommandInputProps {
   onChange: (v: string) => void;
   onExecute: () => void;
   onReset: () => void;
+  onStop?: () => void;
   onExport?: () => void;
   isRunning: boolean;
   isDone: boolean;
@@ -23,6 +24,7 @@ export function CommandInput({
   onChange,
   onExecute,
   onReset,
+  onStop,
   onExport,
   isRunning,
   isDone,
@@ -119,6 +121,19 @@ export function CommandInput({
               )}
               <span className="hidden sm:inline">{isRunning ? "Running…" : "Execute"}</span>
             </button>
+
+            {isRunning && onStop && (
+              <button
+                onClick={onStop}
+                title="Stop pipeline (Esc)"
+                className="flex items-center gap-1.5 rounded-lg border border-[rgba(244,63,94,0.4)]
+                           bg-[rgba(244,63,94,0.08)] px-3 py-1.5 text-xs font-semibold text-[#f43f5e]
+                           hover:bg-[rgba(244,63,94,0.15)] transition-all duration-150"
+              >
+                <Square size={11} className="fill-current" />
+                <span className="hidden sm:inline">Stop</span>
+              </button>
+            )}
           </div>
         </div>
 
