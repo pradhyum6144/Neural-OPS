@@ -2,9 +2,11 @@
 
 import { motion } from "framer-motion";
 import { Zap, Timer, Cpu, RefreshCw } from "lucide-react";
+import { useEffect, useState } from "react";
 import type { MetricState } from "@/hooks/use-dashboard";
 
-const MAX_VALUES = { tokens: 5000, latency: 200, gpu: 100, retries: 10 };
+const MAX_VALUES = { tokens: 5000, latency: 5000, gpu: 100, retries: 10 };
+const DAILY_LIMIT = 50000;
 
 interface MetricCardProps {
   label: string;
@@ -14,10 +16,12 @@ interface MetricCardProps {
   icon: React.ElementType;
   color: string;
   bgColor: string;
+  formatValue?: (v: number) => string;
 }
 
-function MetricCard({ label, value, max, unit, icon: Icon, color, bgColor }: MetricCardProps) {
+function MetricCard({ label, value, max, unit, icon: Icon, color, bgColor, formatValue }: MetricCardProps) {
   const pct = Math.min((value / max) * 100, 100);
+  const displayValue = formatValue ? formatValue(value) : value.toLocaleString();
 
   return (
     <div className="rounded-xl border border-[rgba(99,102,241,0.1)] bg-[rgba(10,10,20,0.6)] p-4">
@@ -36,7 +40,7 @@ function MetricCard({ label, value, max, unit, icon: Icon, color, bgColor }: Met
           className="font-mono text-sm font-bold"
           style={{ color }}
         >
-          {value.toLocaleString()}
+          {displayValue}
           <span className="text-[10px] font-normal text-[#4a4a6a] ml-0.5">{unit}</span>
         </motion.span>
       </div>
@@ -59,7 +63,38 @@ function MetricCard({ label, value, max, unit, icon: Icon, color, bgColor }: Met
   );
 }
 
-export function InfraHeatmap({ metrics }: { metrics: MetricState }) {
+export function InfraHeatmap({
+  metrics,
+  userId = "anonymous",
+}: {
+  metrics: MetricState;
+  userId?: string;
+}) {
+  const [todayTotal, setTodayTotal] = useState(0);
+
+  useEffect(() => {
+    const fetchUsage = async () => {
+      try {
+        const res = await fetch(`/api/alerts/usage?userId=${encodeURIComponent(userId)}`);
+        if (res.ok) {
+          const json = (await res.json()) as { todayTotal: number };
+          setTodayTotal(json.todayTotal ?? 0);
+        }
+      } catch {
+        // silently ignore — badge stays at 0
+      }
+    };
+
+    fetchUsage();
+    const id = setInterval(fetchUsage, 30_000);
+    return () => clearInterval(id);
+  }, [userId]);
+
+  const usagePct = Math.min((todayTotal / DAILY_LIMIT) * 100, 100);
+  const barColor =
+    usagePct >= 80 ? "#f43f5e" : usagePct >= 60 ? "#f59e0b" : "#22d3a5";
+  const isWarning = usagePct >= 80;
+
   const cards: MetricCardProps[] = [
     {
       label: "Tokens Used",
@@ -71,13 +106,14 @@ export function InfraHeatmap({ metrics }: { metrics: MetricState }) {
       bgColor: "rgba(99,102,241,0.12)",
     },
     {
-      label: "Avg Latency",
+      label: "Pipeline Latency",
       value: metrics.latency,
       max: MAX_VALUES.latency,
-      unit: "ms",
+      unit: metrics.latency >= 1000 ? "s" : "ms",
       icon: Timer,
       color: "#22d3a5",
       bgColor: "rgba(34,211,165,0.12)",
+      formatValue: (v) => v >= 1000 ? (v / 1000).toFixed(1) : v.toLocaleString(),
     },
     {
       label: "GPU Usage",
@@ -104,10 +140,31 @@ export function InfraHeatmap({ metrics }: { metrics: MetricState }) {
       <div className="px-4 py-3 border-b border-[rgba(99,102,241,0.08)]">
         <span className="nos-label">Infra Heatmap</span>
       </div>
+
       <div className="grid grid-cols-2 gap-3 p-4">
         {cards.map((c) => (
           <MetricCard key={c.label} {...c} />
         ))}
+      </div>
+
+      {/* Daily token usage badge */}
+      <div className="px-4 pb-4 border-t border-[rgba(99,102,241,0.06)] pt-3">
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <span className="text-[10px] text-[#6060a0] font-mono">
+            Daily limit: {todayTotal.toLocaleString()} / {DAILY_LIMIT.toLocaleString()} tokens used
+          </span>
+          {isWarning && (
+            <span className="text-[11px] leading-none animate-pulse select-none">⚠</span>
+          )}
+        </div>
+        <div className="h-1.5 w-full rounded-full bg-[rgba(99,102,241,0.08)]">
+          <motion.div
+            className="h-full rounded-full"
+            style={{ background: barColor }}
+            animate={{ width: `${usagePct}%` }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          />
+        </div>
       </div>
     </div>
   );
