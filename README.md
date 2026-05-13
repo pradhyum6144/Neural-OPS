@@ -2,7 +2,7 @@
 
 **AI Agent Orchestration Platform**
 
-Neural OPS is a production grade command center for running multi agent AI pipelines. Submit a natural language command and watch a coordinated fleet of specialized agents plan, research, browse, analyze, narrate, and summarize in real time — with live streaming output, an animated workflow graph, token telemetry, and configurable alerting.
+Neural OPS is a production grade command center for running multi agent AI pipelines. Submit a natural language command and watch a coordinated fleet of specialized agents plan, research, browse, analyze, narrate, and summarize in real time with live streaming output, an animated workflow graph, token telemetry, and configurable alerting.
 
 ---
 
@@ -350,13 +350,3 @@ vercel deploy --prod
 ```
 
 The repository includes a `vercel.json` with optimal configuration for Next.js streaming responses.
-
-### One click deploy
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/pradhyum6144/Neural-OPS)
-
----
-
-## License
-
-MIT
