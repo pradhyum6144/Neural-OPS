@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, FileText, CheckCircle, Brain, Search, Monitor, TrendingUp, Mic, Download } from "lucide-react";
+import { X, FileText, CheckCircle, Brain, Search, Monitor, TrendingUp, Mic, Download, Copy, Check } from "lucide-react";
 import type { AgentReport } from "@/hooks/use-dashboard";
 
 const AGENT_ICONS: Record<string, React.ElementType> = {
@@ -92,6 +93,16 @@ interface FinalReportProps {
 }
 
 export function FinalReport({ reports, open, onClose, onExport }: FinalReportProps) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyAll = () => {
+    const text = reports.map((r) => `## ${r.agentName}\n${r.output}`).join("\n\n---\n\n");
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
   return (
     <AnimatePresence>
       {open && (
@@ -125,6 +136,15 @@ export function FinalReport({ reports, open, onClose, onExport }: FinalReportPro
                 <span className="nos-badge-success text-[9px] ml-1">{reports.length} agents</span>
               </div>
               <div className="flex items-center gap-2">
+                <button
+                  onClick={handleCopyAll}
+                  className="flex items-center gap-1.5 rounded-lg border border-[rgba(99,102,241,0.2)]
+                             px-2.5 py-1 text-[10px] font-semibold text-[#6366f1]
+                             hover:bg-[rgba(99,102,241,0.1)] transition-colors"
+                >
+                  {copied ? <Check size={11} className="text-[#22d3a5]" /> : <Copy size={11} />}
+                  {copied ? "copied" : "copy"}
+                </button>
                 {onExport && (
                   <button
                     onClick={onExport}
