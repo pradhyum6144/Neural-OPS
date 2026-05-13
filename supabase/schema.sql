@@ -1,3 +1,4 @@
+
 -- ── Neural OPS — Supabase Schema ──────────────────────────────────────────
 -- Run this in Supabase → SQL Editor → New Query → Run
 
@@ -58,6 +59,11 @@ create table if not exists public.alert_logs (
 
 create index if not exists alert_logs_user_id_idx on public.alert_logs (user_id);
 create index if not exists alert_logs_fired_at_idx on public.alert_logs (fired_at desc);
+
+-- ── Smart Router cost columns (migration) ─────────────────────────────────
+alter table public.token_usage
+  add column if not exists cost_inr  numeric not null default 0,
+  add column if not exists model_used text;
 
 -- ── Row Level Security (optional but recommended) ─────────────────────────
 alter table public.token_usage    enable row level security;

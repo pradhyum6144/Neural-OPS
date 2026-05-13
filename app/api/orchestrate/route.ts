@@ -14,10 +14,12 @@ export async function POST(req: NextRequest) {
       userId?: string;
       command: string;
       agentBreakdown: AgentBreakdown;
+      costInr?: number;
+      modelUsed?: string;
     };
 
     const userId = body.userId ?? "anonymous";
-    const { command, agentBreakdown } = body;
+    const { command, agentBreakdown, costInr = 0, modelUsed = null } = body;
 
     if (!command || !agentBreakdown) {
       return NextResponse.json(
@@ -27,7 +29,7 @@ export async function POST(req: NextRequest) {
     }
 
     // SAVE run tokens to Supabase
-    const { runId, error } = await saveRunTokens(userId, command, agentBreakdown);
+    const { runId, error } = await saveRunTokens(userId, command, agentBreakdown, costInr, modelUsed);
     if (error) {
       return NextResponse.json({ error }, { status: 500 });
     }

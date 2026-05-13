@@ -66,8 +66,14 @@ function MetricCard({ label, value, max, unit, icon: Icon, color, bgColor, forma
 export function InfraHeatmap({
   metrics,
   userId = "anonymous",
+  costThisRun,
+  savedToday,
+  modelUsed,
 }: {
   metrics: MetricState;
+  costThisRun?: number | null;
+  savedToday?: number;
+  modelUsed?: string | null;
   userId?: string;
 }) {
   const [todayTotal, setTodayTotal] = useState(0);
@@ -166,6 +172,46 @@ export function InfraHeatmap({
           />
         </div>
       </div>
+
+      {/* Cost this run / saved today / model used */}
+      {(costThisRun != null || savedToday != null || modelUsed) && (
+        <div className="px-4 pb-4 border-t border-[rgba(99,102,241,0.06)] pt-3 flex flex-col gap-1.5">
+          {costThisRun != null && (
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-[#6060a0] font-mono">Cost this run</span>
+              <motion.span
+                key={costThisRun}
+                initial={{ opacity: 0, x: 6 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="text-[11px] font-mono font-semibold text-[#22d3a5]"
+              >
+                ₹{costThisRun.toFixed(2)}
+              </motion.span>
+            </div>
+          )}
+          {savedToday != null && savedToday > 0 && (
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-[#6060a0] font-mono">Saved today</span>
+              <motion.span
+                key={savedToday}
+                initial={{ opacity: 0, x: 6 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="text-[11px] font-mono font-semibold text-[#22d3a5]"
+              >
+                ₹{savedToday.toFixed(2)}
+              </motion.span>
+            </div>
+          )}
+          {modelUsed && (
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-[#6060a0] font-mono">Model used</span>
+              <span className="text-[10px] font-mono text-[#9090b0] border border-[rgba(99,102,241,0.2)] rounded px-1.5 py-0.5">
+                {modelUsed}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

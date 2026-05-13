@@ -20,6 +20,7 @@ interface SidebarProps {
   onClearHistory?: () => void;
   mobileOpen?: boolean;
   onMobileClose?: () => void;
+  savedToday?: number;
 }
 
 function HistoryPanel({
@@ -106,6 +107,7 @@ export function Sidebar({
   onClearHistory,
   mobileOpen = false,
   onMobileClose,
+  savedToday = 0,
 }: SidebarProps) {
   const path = usePathname();
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -168,6 +170,25 @@ export function Sidebar({
             </span>
           )}
         </button>
+
+        {/* ₹ saved today counter */}
+        {savedToday > 0 && (
+          <div
+            title={`₹${savedToday.toFixed(2)} saved today vs Claude Sonnet`}
+            className="flex flex-col items-center justify-center h-10 w-10 rounded-lg
+                       bg-[rgba(34,211,165,0.08)] border border-[rgba(34,211,165,0.2)]"
+          >
+            <span className="text-[8px] font-bold text-[#22d3a5] leading-none">₹</span>
+            <motion.span
+              key={savedToday}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-[9px] font-mono font-bold text-[#22d3a5] leading-none mt-0.5"
+            >
+              {savedToday < 10 ? savedToday.toFixed(2) : savedToday.toFixed(0)}
+            </motion.span>
+          </div>
+        )}
       </nav>
 
       {/* Bottom: settings + logout */}

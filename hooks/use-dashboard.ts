@@ -58,6 +58,8 @@ export interface DashboardState {
   simulateFailure: boolean;
   pipelineStartedAt: number | null;
   pipelineElapsedMs: number | null;
+  costThisRun: number | null;
+  modelUsed: string | null;
 }
 
 type Action =
@@ -76,7 +78,8 @@ type Action =
   | { type: "SET_RETRYING"; id: string | null }
   | { type: "COMPLETE" }
   | { type: "RESET" }
-  | { type: "CLEAR_LOGS" };
+  | { type: "CLEAR_LOGS" }
+  | { type: "SET_RUN_COST"; costINR: number; modelUsed: string };
 
 const INITIAL_AGENTS: AgentState[] = [
   { id: "planner",  name: "Planner",  status: "idle", subStatus: "Awaiting input",      tokens: 0, output: "", durationMs: undefined },
@@ -103,6 +106,8 @@ const INITIAL_STATE: DashboardState = {
   simulateFailure: false,
   pipelineStartedAt: null,
   pipelineElapsedMs: null,
+  costThisRun: null,
+  modelUsed: null,
 };
 
 let logSeq = 0;
@@ -199,6 +204,9 @@ function reducer(state: DashboardState, action: Action): DashboardState {
 
     case "CLEAR_LOGS":
       return { ...state, logs: [] };
+
+    case "SET_RUN_COST":
+      return { ...state, costThisRun: action.costINR, modelUsed: action.modelUsed };
 
     default:
       return state;

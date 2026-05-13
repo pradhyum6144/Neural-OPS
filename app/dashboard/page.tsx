@@ -1,11 +1,14 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useCallback, useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useRef, useCallback, useState, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useDashboard } from "@/hooks/use-dashboard";
 import { useSpeech } from "@/hooks/use-speech";
 import { useWorkflowHistory } from "@/hooks/use-workflow-history";
+import { useSavings } from "@/hooks/use-savings";
+import { selectModel, MODEL_CONFIGS } from "@/lib/smartRouter";
+import type { ModelKey } from "@/lib/smartRouter";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
 import { CommandInput } from "@/components/dashboard/command-input";
@@ -15,6 +18,7 @@ import { BrowserReplay } from "@/components/dashboard/browser-replay";
 import { InfraHeatmap } from "@/components/dashboard/infra-heatmap";
 import { MemoryNodes } from "@/components/dashboard/memory-nodes";
 import { FinalReport } from "@/components/dashboard/final-report";
+import { RouterBadge } from "@/components/dashboard/RouterBadge";
 import { GridPattern } from "@/components/ui/grid-pattern";
 import type { AgentReport } from "@/hooks/use-dashboard";
 
@@ -92,9 +96,16 @@ export default function DashboardPage() {
   const { state, dispatch, execute, reset } = useDashboard();
   const { speak, replay, isSpeaking } = useSpeech();
   const { history, addEntry, clearHistory } = useWorkflowHistory();
+  const { savedToday, addRun } = useSavings();
   const inputRef = useRef<HTMLInputElement>(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [modelOverride, setModelOverride] = useState<ModelKey | null>(null);
   const prevDoneRef = useRef(false);
+
+  const routerResult = useMemo(
+    () => (state.command.trim() ? selectModel(state.command) : null),
+    [state.command]
+  );
 
   // Speak voice agent output when it completes
   useEffect(() => {
@@ -105,7 +116,7 @@ export default function DashboardPage() {
     }
   }, [state.agents, speak]);
 
-  // Save to history when pipeline completes
+  // Save to history and record costs when pipeline completes
   useEffect(() => {
     if (state.isDone && !prevDoneRef.current) {
       addEntry({
@@ -113,9 +124,23 @@ export default function DashboardPage() {
         tokens: state.metrics.tokens,
         agentsCompleted: state.agents.filter((a) => a.status === "done").length,
       });
+
+      if (routerResult) {
+        const activeModel = modelOverride ?? routerResult.model;
+        const costINR = Math.round(
+          (state.metrics.tokens / 1000) * MODEL_CONFIGS[activeModel].pricePerK * 100
+        ) / 100;
+        const defaultCostINR = Math.round(
+          (state.metrics.tokens / 1000) * MODEL_CONFIGS["Claude Sonnet"].pricePerK * 100
+        ) / 100;
+        const savingsINR = Math.max(0, Math.round((defaultCostINR - costINR) * 100) / 100);
+
+        dispatch({ type: "SET_RUN_COST", costINR, modelUsed: MODEL_CONFIGS[activeModel].label });
+        addRun(costINR, savingsINR);
+      }
     }
     prevDoneRef.current = state.isDone;
-  }, [state.isDone, state.command, state.metrics.tokens, state.agents, addEntry]);
+  }, [state.isDone, state.command, state.metrics.tokens, state.agents, addEntry, routerResult, modelOverride, dispatch, addRun]);
 
   // Export handler
   const handleExport = useCallback(() => {
@@ -178,6 +203,7 @@ export default function DashboardPage() {
         onClearHistory={clearHistory}
         mobileOpen={mobileNavOpen}
         onMobileClose={() => setMobileNavOpen(false)}
+        savedToday={savedToday}
       />
 
       {/* Main — offset for desktop sidebar */}
@@ -223,6 +249,17 @@ export default function DashboardPage() {
               />
             </motion.div>
 
+            {/* Router badge — shown when command is typed and not mid-run */}
+            <AnimatePresence>
+              {routerResult && !state.isRunning && (
+                <RouterBadge
+                  result={routerResult}
+                  override={modelOverride}
+                  onOverride={setModelOverride}
+                />
+              )}
+            </AnimatePresence>
+
             {/* ── Main grid: 2 cols on xl ───────────────────────────────── */}
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 md:gap-4">
 
@@ -260,7 +297,12 @@ export default function DashboardPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.26, duration: 0.4 }}
               >
-                <InfraHeatmap metrics={state.metrics} />
+                <InfraHeatmap
+                  metrics={state.metrics}
+                  costThisRun={state.costThisRun}
+                  savedToday={savedToday}
+                  modelUsed={state.modelUsed}
+                />
               </motion.div>
 
               <motion.div

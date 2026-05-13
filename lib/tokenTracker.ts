@@ -35,7 +35,9 @@ export interface TokenUsageRow {
 export async function saveRunTokens(
   userId: string,
   command: string,
-  agentBreakdown: AgentBreakdown
+  agentBreakdown: AgentBreakdown,
+  costInr = 0,
+  modelUsed: string | null = null
 ): Promise<{ runId: string | null; error: string | null }> {
   const totalTokens = Object.values(agentBreakdown).reduce(
     (sum, a) => sum + (a.tokens ?? 0),
@@ -50,6 +52,8 @@ export async function saveRunTokens(
     total_tokens: totalTokens,
     agent_breakdown: agentBreakdown,
     run_id: runId,
+    cost_inr: costInr,
+    model_used: modelUsed,
   });
 
   if (error) {
